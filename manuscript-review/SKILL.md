@@ -139,6 +139,8 @@ FOR each table in manuscript:
 **Success Checklist:**
 
 - [ ]  **Correct Metrics Used** — AUROC, AUPRC, Sensitivity, Specificity, PPV, NPV only (NO F1, recall, accuracy)
+- [ ]  **Classification Threshold Reported** — For binary classification models, the decision threshold used to derive Sensitivity/Specificity/PPV/NPV is explicitly stated in the table footnote (e.g., "threshold selected at Youden Index" or "threshold = 0.XX"). FAIL if threshold is missing or ambiguous.
+- [ ]  **Threshold Selection Method Stated** — The method for selecting the threshold is named: Youden Index, prespecified clinical sensitivity target, or cost-sensitive criterion. FAIL if Sensitivity/Specificity are reported without specifying how the operating point was chosen.
 - [ ]  **Cited Before Appearance** — Table referenced in text before it appears
 - [ ]  **Title Present** — Descriptive title above table, no period at end
 - [ ]  **Abbreviations Defined** — Listed below table in single paragraph

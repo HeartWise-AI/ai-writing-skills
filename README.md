@@ -13,25 +13,34 @@ Comprehensive guide for writing clinical research protocols for AI-based diagnos
 - Section length reference
 - Submission checklist
 
-### 2. Manuscript Writing - TRIPOD-AI (`manuscript-writing-tripod/`)
+### 2. Manuscript Writing (`manuscript-writing/`)
+Full section-by-section guide for writing a medical AI manuscript from scratch.
+
+**Includes:**
+- All sections: Title, Abstract, Introduction, Methods, Results, Discussion
+- Threshold reporting requirements for binary classification models
+- Table and figure templates
+- Submission checklist
+
+### 3. Manuscript Writing - TRIPOD-AI (`manuscript-writing-tripod/`)
 Guidelines for writing AI papers following TRIPOD+AI reporting standards.
 
 **Includes:**
 - Results section structure
-- Table templates
+- Table templates with mandatory threshold reporting (Youden Index / binary classification)
 - Visual presentation best practices
 - Transparency requirements
 
-### 3. Manuscript Review (`manuscript-review/`)
+### 4. Manuscript Review (`manuscript-review/`)
 Section-by-section checklist for reviewing medical AI manuscripts.
 
 **Includes:**
 - Background, Methods, Results, Tables, Discussion, and Abstract checklists
-- Success criteria for each section
+- Success criteria for each section, including threshold reporting checks for binary classification
 - Numerical formatting rules
 - Forbidden patterns reference
 
-### 4. CIHR Grant Writing (`cihr-grant-writing/`)
+### 5. CIHR Grant Writing (`cihr-grant-writing/`)
 Section-by-section guide for writing CIHR Project Grant applications.
 
 **Includes:**
@@ -49,6 +58,8 @@ Each skill follows the [Agent Skills spec](https://agentskills.io/specification)
 ```
 ai-writing-skills/
 ├── protocol-writing/
+│   └── SKILL.md
+├── manuscript-writing/
 │   └── SKILL.md
 ├── manuscript-writing-tripod/
 │   └── SKILL.md

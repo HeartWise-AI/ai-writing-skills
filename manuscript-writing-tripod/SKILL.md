@@ -66,6 +66,12 @@ Abbreviations: AUROC = Area under the receiver operating characteristic curve; P
 **For Classification Models (Binary/Categorical Outcomes):**
 - Report discrimination metrics with 95% confidence intervals
 - IN ALL CASES: include calibration metrics
+- **REQUIRED — Threshold Reporting:** Sensitivity, Specificity, PPV, and NPV must be accompanied by an explicit statement of the decision threshold used and how it was selected. Acceptable methods:
+  - **Youden Index** (J = sensitivity + specificity − 1): maximizes combined sensitivity and specificity; use as default
+  - **Prespecified sensitivity target** (e.g., ≥ 90% sensitivity): use when clinical context requires a minimum detection rate
+  - **Cost-sensitive threshold**: use when FP and FN carry different clinical consequences
+- Table 2 footnote MUST include: *"Sensitivity, Specificity, PPV, and NPV calculated at the threshold maximizing the Youden Index (threshold = 0.XX on internal validation set)."* (or equivalent for other methods)
+- **FAIL condition:** Reporting Sensitivity/Specificity without stating the threshold or selection method is non-compliant with TRIPOD+AI Item 23a.
 
 ### Subgroup Analysis (Item 23a) - Table 3
 
