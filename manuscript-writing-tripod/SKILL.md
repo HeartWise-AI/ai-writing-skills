@@ -25,6 +25,7 @@ For each objective, define the data source, model development approach, and eval
 | **Data Source**          | Which dataset(s), cohort(s), or registry(ies) are used. Specify name, years, sample size, and linkage. | May use the same or different datasets (e.g., external validation cohort). |
 | **Data Preprocessing**   | Signal/image processing, feature extraction, missing data handling, inclusion/exclusion applied.       | Any additional preprocessing specific to this objective.                   |
 | **Model Development**    | Architecture, training strategy, hyperparameters, cross-validation scheme.                             | May reuse the primary model or develop a separate model. Specify clearly.  |
+| **External Validation**  | External cohort source, size, domain adaptation. If absent, justify as limitation.                     | May use a separate external cohort or the same as primary.                 |
 | **Model Evaluation**     | Discrimination (AUROC, AUPRC), calibration, threshold selection.                                       | Same or different metrics depending on the secondary question.             |
 | **Statistical Analysis** | Hypothesis tests, confidence intervals, comparison to reference standard.                              | Subgroup analyses, interaction tests, etc.                                 |
 | **Sensitivity Analysis** | What assumptions are varied and how robustness is assessed (see Evaluation Criteria below).            | Objective-specific sensitivity analyses.                                   |
