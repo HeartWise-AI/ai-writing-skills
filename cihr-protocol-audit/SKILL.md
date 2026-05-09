@@ -1,6 +1,6 @@
 ---
 name: cihr-protocol-audit
-description: Audit CIHR Project Grant clinical trial protocols for internal consistency, objective-endpoint-analysis traceability, cross-reference integrity, CIHR section compliance, budget-protocol alignment, and terminology consistency. Use when the user asks to audit, review, QC, or check a CIHR grant protocol, or when they want to verify that objectives map to endpoints and analysis plans, that cross-references are accurate, or that the budget matches the protocol. Also trigger when user mentions checking a grant for inconsistencies, garbled text, missing analyses, or section compliance.
+description: Audit CIHR Project Grant clinical trial (RCT) protocols for objective-endpoint-analysis traceability, cross-reference integrity, CIHR section compliance, budget-protocol alignment, and terminology consistency. Use when auditing, reviewing, or QCing a CIHR clinical trial protocol.
 ---
 
 # CIHR Protocol Audit Skill

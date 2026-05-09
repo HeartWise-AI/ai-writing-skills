@@ -1,6 +1,6 @@
 ---
 name: cihr-project-grant-audit
-description: Audit CIHR Project Grant applications (non-RCT) for aim-objective-hypothesis-endpoint-methods traceability, cross-reference integrity, abbreviation discipline, garbled text, duplicate fragments, terminology consistency, and literature-methods alignment. Use when the user asks to audit, review, QC, or check a CIHR grant that is NOT a randomized controlled trial — e.g., registry studies, cohort studies, prediction model studies, biobank studies, observational studies, or AI/technology development grants. Also trigger when user mentions checking a grant for inconsistencies, garbled text, missing analyses, or verifying that aims map to hypotheses, endpoints, and analysis plans.
+description: Audit non-RCT CIHR Project Grant applications (registry, cohort, prediction model, biobank, observational, AI/tech) for aim-hypothesis-endpoint-methods traceability, cross-references, abbreviations, garbled text, and terminology consistency. Use when auditing, reviewing, or QCing a non-RCT CIHR grant.
 ---
 
 # CIHR Project Grant Audit (Non-RCT)
