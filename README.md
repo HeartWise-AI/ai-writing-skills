@@ -28,6 +28,9 @@ Guidelines for writing AI papers following TRIPOD+AI reporting standards.
 **Includes:**
 - Results section structure
 - Table templates with mandatory threshold reporting (Youden Index / binary classification)
+- Reviewer-resilience checklist for medical-AI manuscripts
+- Label-noise, failure-mode, CONSORT flow, and Table 1 denominator templates
+- Typography and abbreviation QC script
 - Visual presentation best practices
 - Transparency requirements
 
@@ -37,6 +40,9 @@ Section-by-section checklist for reviewing medical AI manuscripts.
 **Includes:**
 - Background, Methods, Results, Tables, Discussion, and Abstract checklists
 - Success criteria for each section, including threshold reporting checks for binary classification
+- 16-item reviewer-pattern pre-submission checklist for medical-AI papers
+- Label-noise, failure-mode, CONSORT flow, and Table 1 denominator templates
+- Typography and abbreviation QC script
 - Numerical formatting rules
 - Forbidden patterns reference
 
@@ -62,9 +68,23 @@ ai-writing-skills/
 ├── manuscript-writing/
 │   └── SKILL.md
 ├── manuscript-writing-tripod/
-│   └── SKILL.md
+│   ├── SKILL.md
+│   ├── scripts/
+│   │   └── typography_qc.py
+│   └── templates/
+│       ├── consort_flow_table1_template.md
+│       ├── failure_mode_panel_template.md
+│       ├── failure_mode_panel_template.ipynb
+│       └── label_noise_sensitivity_template.md
 ├── manuscript-review/
-│   └── SKILL.md
+│   ├── SKILL.md
+│   ├── scripts/
+│   │   └── typography_qc.py
+│   └── templates/
+│       ├── consort_flow_table1_template.md
+│       ├── failure_mode_panel_template.md
+│       ├── failure_mode_panel_template.ipynb
+│       └── label_noise_sensitivity_template.md
 ├── cihr-grant-writing/
 │   ├── SKILL.md
 │   └── references/
