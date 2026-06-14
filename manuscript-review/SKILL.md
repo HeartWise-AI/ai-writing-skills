@@ -396,11 +396,11 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 ### 17. Agreement and continuous-measurement validation
 
 - For models that estimate a continuous clinical quantity or substitute for a reference device, require Bland-Altman analysis with limits of agreement in the intended clinical population. Pearson r, coefficient of determination, or intraclass correlation alone quantify association, not agreement, and do not establish clinical accuracy.
-- Require the limits of agreement to be interpreted against the effect size that matters in the domain. State the minimum clinically important difference and compare. A tool with limits of agreement of plus or minus 10 mL/kg/min cannot support a use case built on a 1.5 mL/kg/min treatment effect.
+- Require the limits of agreement to be interpreted against the minimum clinically important difference, the effect size that matters in the domain. A tool with limits of agreement of plus or minus 10 mL/kg/min cannot support a use case built on a 1.5 mL/kg/min treatment effect.
 - Flag systematic directional bias in the intended population. Errors that do not average out, shown as a slope or offset in the Bland-Altman residuals within the target disease group, are disqualifying even when overall performance looks acceptable.
 - Flag demographic confounding. When model inputs overlap substantially with known clinical determinants such as age, sex, and body mass index, require isolation of the novel signal. Otherwise the reported correlation may be demographic rather than physiological.
 - Treat regulatory clearance as context, not validation. United States Food and Drug Administration (FDA) 510(k) clearance means substantial equivalence to a predicate device, not demonstrated clinical utility. Do not accept 510(k), CE mark, or commercial deployment as evidence of clinical readiness.
-- Require methodology that is internally consistent and independently verifiable. Flag pipelines described differently between abstract and Methods, and proprietary or opaque methods that cannot be reproduced or audited.
+- Require methodology that is internally consistent and independently verifiable. Flag pipelines described differently between the abstract and Methods, and proprietary or opaque methods that cannot be reproduced or audited.
 
 ### Cross-cutting submission discipline
 
