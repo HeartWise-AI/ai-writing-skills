@@ -61,6 +61,7 @@ Build these items into the first complete manuscript draft rather than saving th
 14. **Public code, data, and reproducibility**: If a public repository is provided, include a `dataset_creation/README.md` or equivalent with input schema, expected metadata, preprocessing steps, prompts used for label extraction, and validation procedures. Include the repository URL where journal policy allows.
 15. **Prospective evaluation and journal targeting**: State whether prospective deployment, prospective reader-study, or silent-mode evaluation data exist. If absent, treat this as a substantive limitation for top-tier general medical and digital-health journals.
 16. **Discordance versus decisions**: When comparing model output with clinician or operator decisions, report discordance rate and characterize discordant cases. Frame discordance as a signal for review or hypothesis generation, not proof that the model is right.
+17. **Agreement and continuous-measurement validation**: For models that estimate a continuous clinical quantity or substitute for a reference device, report Bland-Altman analysis with limits of agreement in the intended clinical population, not Pearson r, coefficient of determination, or intraclass correlation alone. Interpret the limits of agreement against the minimum clinically important difference in the domain. Check for systematic directional bias, shown as a slope or offset in the residuals within the target disease group, even when overall performance looks acceptable. Isolate the novel signal when inputs overlap with demographic determinants such as age, sex, and body mass index, since the reported correlation may otherwise be demographic rather than physiological. Frame regulatory clearance accurately: United States Food and Drug Administration (FDA) 510(k) is substantial equivalence to a predicate device, not clinical validation, so do not present 510(k), CE mark, or commercial deployment as evidence of clinical utility.
 
 Cross-cutting rule: the manuscript must be readable end-to-end without requiring the supplement for sample sizes, denominators, or headline metric definitions. Abstract headline metrics must match the corresponding table values exactly to the second decimal.
 
@@ -90,6 +91,9 @@ Expand every abbreviation at first use in the text, with the abbreviation in par
 | REB          | Research Ethics Board                                                                           |
 | DCA          | Decision Curve Analysis                                                                         |
 | ROC          | Receiver Operating Characteristic                                                               |
+| FDA          | United States Food and Drug Administration                                                       |
+| MCID         | Minimum Clinically Important Difference                                                          |
+| LoA          | Limits of Agreement                                                                             |
 
 
 Add study-specific abbreviations to this table as they appear. Define each abbreviation in the text at first use AND in a consolidated abbreviation list in the supplement.
@@ -156,6 +160,7 @@ The main manuscript Methods must contain the following subsections in order. All
 | Threshold selection | Youden Index, clinical utility threshold                         | Same or adapted                             |
 | Clinical utility    | Decision Curve Analysis (DCA), net benefit                       | If applicable                               |
 | Comparison          | vs. existing clinical scores or simple models                    | vs. primary model or alternative approaches |
+| Agreement (continuous or device substitution) | Bland-Altman bias and 95% limits of agreement, interpreted against the minimum clinically important difference | If applicable |
 
 
 **Sensitivity Analysis (required for both primary and secondary objectives):**
@@ -303,6 +308,7 @@ Abbreviations: AUROC: Area Under the Receiver Operating Characteristic Curve; PP
 - Include residual plots to assess model assumptions
 - Create scatter plots of predicted vs. actual values with identity line
 - Show distribution plots of residuals by predictor variables
+- For device-substitution or measurement-agreement studies, include a Bland-Altman plot with mean bias and 95% limits of agreement, and interpret the limits against the minimum clinically important difference rather than reporting correlation alone
 
 **For Classification Models:**
 
@@ -320,6 +326,8 @@ Abbreviations: AUROC: Area Under the Receiver Operating Characteristic Curve; PP
 - Compare prediction intervals to clinically meaningful ranges
 - Discuss practical implications of prediction uncertainty
 - Address generalizability across different patient populations
+- For measurement-agreement or device-substitution claims, state the minimum clinically important difference and whether the limits of agreement fall within it, and check for systematic directional bias in the target population
+- Frame regulatory clearance, such as United States Food and Drug Administration (FDA) 510(k), as substantial equivalence to a predicate device, not as clinical validation
 
 **For Classification Models:**
 
