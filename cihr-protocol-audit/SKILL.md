@@ -1,6 +1,6 @@
 ---
 name: cihr-protocol-audit
-description: Audit CIHR Project Grant clinical trial (RCT) protocols for objective-endpoint-analysis traceability, cross-reference integrity, CIHR section compliance, budget-protocol alignment, and terminology consistency. Use when auditing, reviewing, or QCing a CIHR clinical trial protocol.
+description: Audit CIHR Project Grant RCT protocols and resubmissions for estimand, endpoint, analysis, reviewer-response closure, section compliance, feasibility, budget alignment, and terminology. Use when auditing, reviewing, responding to reviewers, or QCing a CIHR trial.
 ---
 
 # CIHR Protocol Audit Skill
@@ -9,7 +9,7 @@ description: Audit CIHR Project Grant clinical trial (RCT) protocols for objecti
 
 Systematic audit of a CIHR Project Grant clinical trial protocol. Produces a structured checklist (markdown), applies tracked changes for fixable issues, and adds comments for items requiring investigator judgment.
 
-The audit has five parts plus a consistency check pass. Each part can surface issues that require either tracked changes (fixable problems) or comments (judgment calls).
+The audit has seven parts plus a consistency check pass. Each part can surface issues that require either tracked changes (fixable problems) or comments (judgment calls).
 
 ## Prerequisites
 
@@ -35,8 +35,21 @@ Every objective in the protocol must have three components:
    - Find the corresponding analysis plan in 2.16 (2.16.1 for primary, 2.16.2 for secondary, 2.16.3 for sensitivity)
    - Verify the endpoint measurement method is specified (instrument name, timing, data source)
    - Verify the analysis plan specifies: statistical test, model structure, covariates/adjustments
+   - State the estimand, analysis population, denominator, effect measure, and time window
+   - Map the observation pathway from randomization through clinician action, reference-standard testing, result availability, and endpoint ascertainment
+   - Distinguish no event, no confirmatory test, unavailable external result, death, withdrawal, and loss to follow-up
+   - If observation depends on a post-randomization referral or test, assess differential or partial verification and require a correction or sensitivity plan
+   - Verify that the comparator is the complete standard-care pathway, including other clinical information available to the decision-maker
 
-3. Flag gaps:
+3. For the primary objective, reproduce the sample-size calculation from the stated inputs and verify:
+   - Control and intervention rates yield the stated absolute and relative effect
+   - The powered effect measure matches the primary model output
+   - Randomization level, clustering level, ICC, and cluster-size distribution are distinguished
+   - Expected events per cluster support the proposed GEE, mixed-effects, or frailty model
+   - Attrition inflation is compatible with the endpoint denominator and missing-outcome definition
+   - Control rate, adherence, reference-standard completion, system capacity, and ICC receive sensitivity analyses when power is fragile
+
+4. Flag gaps:
    - **GAP**: No analysis plan for this objective
    - **PARTIAL**: Analysis mentioned but lacks specifics (e.g., "descriptive statistics" without specifying which tests, stratification, or comparison methods)
    - **OK**: All three components present and specific
@@ -116,6 +129,10 @@ If a budget file is provided, check that every budgeted item aligns with the pro
    - Number of sites: do personnel/equipment budgets cover all sites?
    - Sample sizes: does the verification substudy budget match the protocol target?
    - Data sources: are all required data linkage fees budgeted?
+   - Computing: are on-premise and cloud costs non-duplicative and consistent with the privacy architecture?
+   - Regulation: are classification, monitoring, data management, and oversight resourced if applicable?
+   - Site activation: do staffing, interfaces, and consumables match the actual launch schedule and final site count?
+   - Data linkage: are jurisdiction-specific extraction, governance, and legal costs included?
 
 ### Common Issues
 
@@ -183,6 +200,40 @@ Check that key terms, group names, instrument names, and abbreviations are used 
 | Term Category | Variants Found | Canonical Form | Locations |
 |--------------|----------------|---------------|-----------|
 
+## Part G: Reviewer-Response and Resubmission Closure
+
+Use this part whenever prior reviews or a response-to-reviewers document is available.
+
+### Procedure
+
+1. Atomize every reviewer paragraph into separate concerns. Record the review cycle, reviewer, criterion, and whether the same root concern appeared previously.
+2. Build a canonical parameter ledger covering design, unit of randomization, stratification, clustering, sites, providers, participants, duration, endpoint, time window, control rate, effect, alpha, power, attrition or under-ascertainment, ICC, sample size, analysis model, intervention thresholds, substudy size, consent, and data sources.
+3. Search the current summary, body, figures, tables, budget, statistical appendices, response letter, tracked changes, comments, and support letters for every canonical parameter and all stale values.
+4. For diagnostic-impact and implementation trials, map the causal pathway:
+
+   `intervention -> user receives result -> user acts -> service delivers test -> result is retrievable -> endpoint is observed`
+
+   For every transition, require an owner, expected completion rate, evidence source, monitoring method, failure mode, and remediation rule.
+5. Verify that run-in phases have a justified duration, representative users, training and competency criteria, workflow data collection, readiness thresholds, and proceed, extend, or stop rules.
+6. Classify external data access, REB permission, regulatory status, support letters, and site capacity as **CONFIRMED**, **CONTINGENT**, or **UNSUPPORTED**. Planned agreements and unsigned letters are not confirmed evidence.
+7. For AI interventions, verify peer-review status, risk-tier performance, calibration, threshold and version lock, drift governance, clinician override, complete standard-care comparison, fairness metrics, and site transportability.
+
+### Closure Status
+
+- **ADDRESSED**: The response and revised application contain specific, consistent evidence and all dependent artifacts agree
+- **PARTIALLY ADDRESSED**: A meaningful change exists, but evidence, propagation, feasibility, or methodological detail remains incomplete
+- **NOT ADDRESSED**: The response repeats rationale or promises future work without a corresponding application change
+- **CONTRADICTED**: The response claims a change that a current artifact disproves
+- **NOT APPLICABLE**: The concern was removed with the relevant aim, endpoint, site, or procedure, and removal is verified everywhere
+- **HUMAN DECISION REQUIRED**: Closure depends on an investigator choice, clinical threshold, external permission, agreement, or unavailable data
+
+A response-letter assurance alone is never sufficient for **ADDRESSED**. A recurring concern is submission-critical until the root cause, not only its wording, is removed.
+
+### Output Format
+
+| Cycle / Reviewer | Atomic Concern | Root Concept | Response Claim | Current Grant Evidence | Cross-Document Check | Status | Remaining Action |
+|------------------|----------------|--------------|----------------|------------------------|----------------------|--------|------------------|
+
 ## Applying Fixes
 
 After completing the audit:
@@ -222,6 +273,7 @@ Save the audit results as a markdown checklist file alongside the document. Stru
 - Part D table (if budget provided)
 - Part E issue list with fix status
 - Part F consistency table
+- Part G reviewer-response closure matrix and canonical-parameter search result
 
 ## Quick Reference: What Gets a Tracked Change vs a Comment
 

@@ -56,3 +56,18 @@
 | "Unclear how results will be used" | State the explicit pipeline: pilot -> phase III -> guidelines; name the guideline body |
 | "Relying on AI to evaluate AI is risky" | Describe human adjudication with central reader model; specify sample size for adjudication; use subspecialty core labs |
 | "The proposal lacks innovation" | Distinguish from prior work clearly; state what is novel about the approach, population, or endpoint |
+| "There is a significant editing error between the summary and the body" | Run the consistency gate (SKILL 5.2). One canonical parameter set, propagated; regenerate every figure |
+| "The primary outcome is only evaluated in the subset who receive the test" | Make the denominator all randomized participants; count unascertained outcomes as non-events under ITT (F2) |
+| "The chosen window is not in line with current clinical practice" | Anchor the window to a named guideline and cite it; map intervention categories onto guideline actions (F3) |
+| "The sample size calculation does not match the primary analysis model" | Compute power under the primary model; show the derivation path so a reader can reproduce N (F4) |
+| "This was raised by the previous reviewer but was not adequately addressed" | Track every prior comment to a disposition; where not adopted, say so with reasoning rather than staying silent (5.4) |
+| "The model will have convergence issues with so few events per cluster" | Compute events per cluster; use GEE with robust standard errors; report ICC and design effect (F5) |
+| "The assumed loss to follow-up appears overoptimistic" | Give the empirical source for the assumption and show the design survives a worse value (F6) |
+| "Feasibility of the proposed data linkage has not been shown" | Do not make the primary endpoint depend on it; state access mechanism, granularity, cost, and agreement status; attach letters (F7) |
+| "Support letters from participating institutions are absent" | One signed letter per participating institution; start collecting eight weeks out (F8) |
+| "Provider behaviour may bias the endpoint since they are unblinded" | Move the endpoint from provider action to objectively ascertained clinical result; blind ascertainment and analysis (F9) |
+| "All sites are high-level centres, unclear if it works elsewhere" | Add sites in the target implementation setting; pre-specify a resource-level subgroup with interaction test (F10) |
+| "The model's performance data are unpublished" | Publish development and validation before or alongside the trial application; state status honestly (F11) |
+| "Knowledge translation is weak given the knowledge users on the grant" | For each named knowledge user, state the action and mechanism, not the venue (F12) |
+| "Unclear how the algorithm will actually shorten the pathway" | State the causal mechanism explicitly in one sentence, and quantify the gap it closes with your own data |
+| "The same abbreviation is used for two different terms" | Build an abbreviation registry; one expansion per abbreviation across the package |
