@@ -60,6 +60,7 @@ Pre-submission check that CIHR application PDFs meet the agency's mechanical for
 
 **Includes:**
 - `cihr_pdf_check.py`, which reports font, colour, size and margin violations per page
+- `cihr_roster_check.py`, which cross-checks roster name fields and STRAC attestation roles against the attestation forms in the same export
 - The LibreOffice font-substitution trap and safe export paths
 - Attachment-set rules (STRAC attestations, Scientific Officer notes, the three institution fields)
 - Pre-submission checklist
@@ -101,7 +102,8 @@ ai-writing-skills/
 ├── cihr-format-compliance/
 │   ├── SKILL.md
 │   └── scripts/
-│       └── cihr_pdf_check.py
+│       ├── cihr_pdf_check.py
+│       └── cihr_roster_check.py
 └── README.md
 ```
 

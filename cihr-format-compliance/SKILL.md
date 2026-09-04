@@ -1,6 +1,6 @@
 ---
 name: cihr-format-compliance
-description: Verify that CIHR application PDFs and attachments meet the agency's mechanical format rules - Times New Roman, black, 12 pt minimum, 2 cm margins - and that the right documents are attached. Use before submitting a CIHR Project Grant, after any document is re-exported, or when a grants officer returns an application for formatting. Also use when asked whether an application is ready to submit, or to check a ResearchNet export.
+description: Verify that CIHR application PDFs and attachments meet the agency's mechanical format rules - Times New Roman, black, 12 pt minimum, 2 cm margins - that the right documents are attached, and that roster surname/given-name fields and STRAC attestation roles are correct. Use before submitting a CIHR Project Grant, after any document is re-exported, or when a grants officer returns an application for formatting. Also use when asked whether an application is ready to submit, or to check a ResearchNet export.
 ---
 
 # CIHR Format Compliance
@@ -78,27 +78,49 @@ Beyond formatting, confirm the right documents are present and no extra ones are
   2. Task 2, where the research takes place: the **hospital or institute**.
   3. Task 2, which institution administers the funds (Institution Paid): the **hospital or institute**.
 
-Verify each attestation page against a roster of who should be there:
+Run the roster checker, which cross-references both against the roster:
 
 ```bash
-python - <<'PY'
-import pymupdf, re
-doc = pymupdf.open("EXPORT.pdf")
-for i in range(3, 23):            # the attestation page range
-    text = doc[i].get_text()
-    email = re.findall(r'[\w.\-]+@[\w.\-]+', text)
-    date = re.findall(r'20\d\d-\d\d-\d\d', text)
-    print(i + 1, email[0] if email else "?", date[-1] if date else "NO DATE")
-PY
+python scripts/cihr_roster_check.py EXPORT.pdf --attestation-pages 4-23
 ```
 
-Every page must carry a completed attestation date; a blank one means the form was merged before it was filled in.
+It reports a Collaborator who filed an attestation, a required role whose attestation is
+missing, and surname/given-name fields that are reversed or wrongly split. Pass the page
+range holding the STRAC forms; without it the whole document is scanned, which still works
+but is slower.
 
-### 5. Check the numbers agree across documents
+Also confirm every attestation page carries a completed date. A blank one means the bundle
+was merged before the form was filled in.
+
+### 5. Check the budget totals agree across documents
 
 The budget module in ResearchNet and the budget narrative PDF are entered separately and drift apart. Compare the category totals and the grand total line by line. ResearchNet enforces $1,000 rounding on each category, so small differences can be legitimate - but they must be explained in the category description, and a category that is already a round thousand cannot be explained that way.
 
-Also check the roster name fields. Surname and given-name are routinely entered reversed or merged for hyphenated and non-anglophone names, and the error propagates into generated headings such as "Most Significant Contributions - ...". Verify each against a source the person wrote themselves: their signed attestation form, their letter of support signature block, or the local part of their institutional email.
+## How the name check decides
+
+Surname and given-name errors are common and self-inflicted, so the check uses sources the
+applicant did not type into the portal, in this order:
+
+1. **The person's own attestation form.** They filled in their own last-name and first-name
+   fields, so this outranks the roster. If the roster carries the same two names the other
+   way round, the fields are reversed. If the surname agrees but the given name does not,
+   the form's given name is the right one.
+2. **A token appearing in both fields.** `Surname "Theriault Lauzier" / Given "Lauzier"`
+   cannot be right whatever the person is called, and usually means the real given name is
+   missing entirely.
+3. **Prose elsewhere in the export.** Collaborators file no attestation, so there is no form
+   to compare against. Letters of support, biosketches and contribution statements write
+   names given-name-first. If the export only ever writes the two names in the order
+   `<surname field> <given field>`, the portal fields are swapped.
+
+Roster and attestation pages are excluded from the prose corpus. Both print the surname
+before the given name by design, and leaving them in makes every correctly entered name look
+reversed.
+
+Accents are folded before comparison, so "Thériault" matches "Theriault". Verify anything the
+check reports against a source the person wrote themselves before editing the portal - their
+signed form, their letter's signature block, the local part of their institutional email, or
+their PubMed author record.
 
 ## Pre-submission checklist
 
@@ -107,11 +129,12 @@ Also check the roster name fields. Surname and given-name are routinely entered 
 - [ ] No attachment was produced by LibreOffice
 - [ ] Page limits respected for each attachment
 - [ ] Task 1 institution is the university; both Task 2 institutions are the host hospital or institute
+- [ ] `cihr_roster_check.py` reports zero blockers
 - [ ] Attestations present for every required role, and for no Collaborator
 - [ ] Every attestation carries a completed date
 - [ ] SO notes attached to the response, including the "no notes generated" document if the application was streamlined
 - [ ] Budget totals reconcile between ResearchNet and the narrative, or every difference is explained in the description
-- [ ] Roster surnames and given names verified against a self-authored source
+- [ ] Roster surnames and given names verified against a self-authored source (their attestation form, letter signature, institutional email, or PubMed author record)
 
 ## Related skills
 
