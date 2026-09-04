@@ -1,6 +1,6 @@
 ---
 name: cihr-project-grant-audit
-description: Audit non-RCT CIHR Project Grant applications (registry, cohort, prediction model, biobank, observational, AI/tech) for aim-hypothesis-endpoint-methods traceability, cross-references, abbreviations, garbled text, and terminology consistency. Use when auditing, reviewing, or QCing a non-RCT CIHR grant.
+description: Audit non-RCT CIHR Project Grant applications and resubmissions for aim-method traceability, reviewer-response closure, cross-document consistency, feasibility, statistics, and terminology. Use when auditing, reviewing, responding to reviewers, or QCing a non-RCT CIHR grant.
 ---
 
 # CIHR Project Grant Audit (Non-RCT)
@@ -11,7 +11,7 @@ Systematic audit of a CIHR Project Grant application for a non-RCT study (regist
 
 Non-RCT CIHR grants typically organize around **Specific Aims**, each with its own rationale, hypothesis, endpoints, and analysis plan — rather than the numbered RCT section structure (1.1–3.3). This audit is designed for that architecture.
 
-The audit has seven parts. Each part can surface issues that require either tracked changes (fixable problems) or comments (judgment calls).
+The audit has eight parts. Each part can surface issues that require either tracked changes (fixable problems) or comments (judgment calls).
 
 ## Prerequisites
 
@@ -417,6 +417,146 @@ Verify that cited literature actually supports the methodological choices AND ep
 | "PGS will be incorporated into practice in the very near future" | Refs 31-32 | Peer-reviewed | OVERCLAIMED | Consensus statements discuss potential, don't recommend |
 | "Only 5% of patients with ICD having appropriate therapy" | None | — | UNSUPPORTED | Common estimate but no citation provided |
 | Backward stepwise selection by AIC | Standard | — | WEAK | TRIPOD recommends against stepwise; penalized regression preferred unless justified |
+
+## Part H: Reviewer-Response and Resubmission Closure
+
+Use this part whenever prior reviews, a response-to-reviewers document, or an earlier application is available. A persuasive response is not proof that a concern has been addressed. Closure requires the response claim, the revised application, and every dependent document to agree.
+
+### H1. Build a Reviewer Concern Registry
+
+Extract every substantive concern, including comments embedded in strengths, budget recommendations, sex/gender appraisals, and repeated concerns from earlier rounds. Keep separate rows when one reviewer sentence contains multiple causal issues.
+
+For each concern, record:
+
+1. Review round, reviewer, criterion, and exact concern
+2. Root concept, such as endpoint validity, verification bias, feasibility, or statistical alignment
+3. Whether the concern recurred in an earlier round
+4. Applicant response and claimed change
+5. Exact revised-application location
+6. Cross-document dependencies, including summary, figures, budget, letters, and statistical appendices
+7. Residual risk and any evidence still required
+
+Treat recurrence as evidence that the prior response failed at the implementation or communication layer. Do not answer a repeated concern with more reassurance. Identify what the reviewer could not verify and add the missing evidence or change the design.
+
+### H2. Canonical Parameter and Cross-Document Control
+
+Create a canonical parameter ledger before judging consistency. At minimum include:
+
+- Study design and unit of randomization
+- Stratification and clustering variables
+- Number and type of sites
+- Recruitment period, follow-up period, and total duration
+- Number of providers and participants
+- Primary endpoint definition, denominator, and time window
+- Control event rate, target effect, alpha, power, attrition or under-ascertainment assumption, ICC, and final sample size
+- Primary analysis model and effect measure
+- Intervention tiers, thresholds, and recommended actions
+- Substudy size and allocation
+- Data-linkage sources and consent model
+
+Search every application component for stale values, including text boxes, figures, captions, tables, tracked changes, comments, headers, summaries, budgets, and support letters. A consistency table is valid only if generated from the current files. Never state that old values were removed without executing the search.
+
+Flag:
+
+- **CONTRADICTION**: Two current documents state incompatible values or methods
+- **STALE**: A prior value remains in a figure, summary, comment, or dependent file
+- **UNVERIFIED**: The response claims propagation but a dependent file is missing or was not inspected
+- **CONSISTENT**: All inspected current documents match the canonical ledger
+
+### H3. Endpoint, Estimand, and Ascertainment Audit
+
+For each primary and key secondary endpoint, write the full causal chain:
+
+`randomization -> intervention exposure -> clinician or system action -> reference-standard measurement -> endpoint ascertainment -> analysis`
+
+Then verify:
+
+- The endpoint measures a clinically meaningful outcome, not only an operational intermediate, unless the operational outcome is the explicit study objective
+- The time window is clinically justified and matches the intervention recommendation
+- The denominator is explicit and identical in the endpoint, sample-size, and analysis sections
+- Events, missing outcomes, absence of testing, death, and loss to follow-up are distinct states
+- Outcome ascertainment is equally available across randomized arms
+- If reference-standard testing depends on the intervention or clinician behavior, verification bias is addressed through universal ascertainment, random verification sampling in both arms, inverse-probability methods, or a justified sensitivity framework
+- The comparator represents actual standard clinical assessment, including relevant non-AI information, rather than an artificially weak comparator
+- Post-randomization behavior that is part of the intervention mechanism is not incorrectly described as eliminated confounding
+
+For diagnostic or triage trials, calculate the verification fractions by arm and risk group. Diagnostic performance estimated only among tested participants is conditional performance, not population performance. Label it accordingly unless the design corrects partial verification.
+
+### H4. Analysis and Sample-Size Coherence
+
+Reproduce the sample-size calculation from the stated inputs. Do not accept a quoted software output or rounded total without executable verification.
+
+Check that:
+
+- The powered effect matches the exact control and intervention rates
+- Relative risk, odds ratio, hazard ratio, and absolute difference are not used interchangeably
+- Attrition inflation is compatible with the endpoint denominator and missing-data definition
+- The sample-size method matches the primary analysis or is explicitly justified as a valid approximation
+- Randomization level, clustering level, and correlation structure are distinguished
+- Sparse clusters and rare events will not make the chosen model unstable
+- The number of clusters, cluster-size distribution, and expected events per cluster support GEE, mixed-effects, or frailty estimation
+- Stratification factors included in the model will not cause separation or overfitting
+- Control-rate, adherence, capacity, prevalence, ICC, and loss assumptions receive sensitivity analyses when power is fragile
+- Interim sample-size re-estimation timing is stated as a proportion of the final sample and updated when the total sample changes
+
+When reviewers question a model, the response must name the revised estimator, clustering unit, working correlation or random-effects structure, effect measure, covariate adjustment, and sensitivity model. Statements such as "we adjusted the analysis" are insufficient.
+
+### H5. Operational Feasibility as a Testable Contract
+
+Convert every feasibility assurance into observable evidence or a pre-specified gate:
+
+- Run-in duration has objectives, data collected, responsible personnel, exit criteria, and remediation rules
+- Recruitment arithmetic reconciles sites, providers, monthly rate, and recruitment duration
+- Intervention fidelity is monitored in real time with a defined numerator, denominator, threshold, and response
+- Resource capacity supports the endpoint window at every site, with site-specific evidence where capacity is causal to the endpoint
+- External records and administrative linkage have named data custodians, legal pathways, agreements, costs, and fallback plans
+- Consent waivers, patient contact, and verification substudies have non-overlapping, explicit consent rules
+- Site participation is supported by current letters that match the final protocol and site role
+- Regulatory, privacy, cybersecurity, and data-residency claims match the actual architecture and budget
+
+Classify commitments as **CONFIRMED**, **CONTINGENT**, or **UNSUPPORTED**. Do not convert contingent approvals, unsigned letters, estimates, or planned agreements into confirmed facts in the response letter.
+
+### H6. AI Evidence Maturity and Implementation Validity
+
+For AI-enabled proposals, also verify:
+
+- Peer-review status of the foundational model and whether unpublished evidence carries a major claim
+- Training, internal validation, external validation, and prospective evaluation populations are clearly separated
+- Performance is reported across intervention-relevant risk tiers and key subgroups
+- Model version, weights, threshold, preprocessing, and update policy are frozen or governed during the trial
+- Drift monitoring and site transportability are addressed without changing the evaluated intervention mid-trial
+- Human workflow, alert uptake, and resource constraints are part of the effectiveness model
+- Comparison against standard clinical assessment and simpler baselines is planned
+- Fairness assessment includes calibration and error rates by clinically relevant groups, not only conventional interaction tests
+- Implementation outputs lead to concrete decisions, such as workflow changes, policy briefs, regulatory steps, or guideline engagement
+
+### H7. Adjudicate Closure Conservatively
+
+Assign one status to every concern:
+
+- **ADDRESSED**: The revised application contains a complete, internally consistent change and all dependent artifacts agree
+- **PARTIALLY ADDRESSED**: A meaningful change exists, but evidence, propagation, feasibility, or methodological detail remains incomplete
+- **NOT ADDRESSED**: The response repeats rationale, promises future work, or lacks a corresponding application change
+- **CONTRADICTED**: The response claims a change that the current application or another artifact disproves
+- **NOT APPLICABLE**: The concern no longer applies because the relevant aim, endpoint, site, or procedure was removed, with removal verified across artifacts
+- **HUMAN DECISION REQUIRED**: Closure depends on an investigator choice, external agreement, clinical threshold, or data not present in the package
+
+Do not use **ADDRESSED** when the only evidence is the response letter. Unsupported certainty is worse than an explicit residual action because reviewers can detect the mismatch.
+
+### H8. Resubmission Output Matrix
+
+| Round / Reviewer | Concern | Root Concept | Response Claim | Revised Grant Evidence | Cross-Document Check | Status | Remaining Action |
+|------------------|---------|--------------|----------------|------------------------|----------------------|--------|------------------|
+
+End the audit with:
+
+1. Recurrent patterns across review rounds
+2. Concerns fully closed
+3. Concerns partially closed or contradicted
+4. Exact edits applied
+5. Human or external dependencies
+6. A fresh canonical-parameter search result
+7. A statement of which files, figures, and pages were executed or inspected
 
 ## Applying Fixes
 
