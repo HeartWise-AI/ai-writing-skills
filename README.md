@@ -55,6 +55,15 @@ Section-by-section guide for writing CIHR Project Grant applications.
 - Fill-in-the-blank templates
 - Reference appendices for CIHR-specific language, study type adaptation, and common reviewer critiques
 
+### 6. CIHR Format Compliance (`cihr-format-compliance/`)
+Pre-submission check that CIHR application PDFs meet the agency's mechanical format rules and that the right documents are attached.
+
+**Includes:**
+- `cihr_pdf_check.py`, which reports font, colour, size and margin violations per page
+- The LibreOffice font-substitution trap and safe export paths
+- Attachment-set rules (STRAC attestations, Scientific Officer notes, the three institution fields)
+- Pre-submission checklist
+
 ---
 
 ## Directory Structure
@@ -89,6 +98,10 @@ ai-writing-skills/
 │   ├── SKILL.md
 │   └── references/
 │       └── APPENDICES.md
+├── cihr-format-compliance/
+│   ├── SKILL.md
+│   └── scripts/
+│       └── cihr_pdf_check.py
 └── README.md
 ```
 
@@ -297,6 +310,7 @@ cihr-grant-writing.zip
 | TRIPOD-AI Manuscript | `manuscript-writing-tripod/` | `/manuscript-writing-tripod` | ZIP upload | GPT knowledge | Database page |
 | Manuscript Review | `manuscript-review/` | `/manuscript-review` | ZIP upload | GPT knowledge | Database page |
 | CIHR Grant Writing | `cihr-grant-writing/` | `/cihr-grant-writing` | ZIP upload | GPT knowledge | Database page |
+| CIHR Format Compliance | `cihr-format-compliance/` | `/cihr-format-compliance` | ZIP upload | GPT knowledge | Database page |
 
 ---
 
