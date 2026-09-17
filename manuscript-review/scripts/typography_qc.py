@@ -7,8 +7,10 @@ import argparse
 import re
 import sys
 import zipfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 from xml.etree import ElementTree
 
 
@@ -19,6 +21,29 @@ class Rule:
     message: str
     suggestion: str
     flags: int = 0
+    # Optional second stage: the regex over-matches on purpose and this decides
+    # whether a given match is actually a violation. Needed where the contract
+    # depends on the numeric value, not on the text shape.
+    validator: Optional[Callable[[str], bool]] = None
+
+
+def excess_decimals(text: str) -> bool:
+    """True when a number carries more decimals than SKILL.md permits.
+
+    Percentages get 1 decimal, values at or above 0.1 get 2, values below 0.1 get 3.
+    Covers 1.000, 12.345 and 12.345% as well as 0.945, and 0.0123 below the
+    0.1 boundary, none of which a 0.xxx-shaped pattern can reach.
+    """
+    is_percent = text.rstrip().endswith("%")
+    number = text.rstrip().rstrip("%")
+    try:
+        value = float(number)
+    except ValueError:
+        return False
+    decimals = len(number.partition(".")[2])
+    if is_percent:
+        return decimals > 1
+    return decimals > 2 if value >= 0.1 else decimals > 3
 
 
 @dataclass(frozen=True)
@@ -96,23 +121,20 @@ RULES = [
         "P value lacks spacing.",
         'Use "p < 0.05", "p = 0.04", or journal style equivalent.',
     ),
+    # Supersedes the earlier name-anchored METRIC_PRECISION rule, which only fired
+    # when a metric name sat next to the number and so missed table cells and
+    # confidence-interval bounds. The regex over-matches; excess_decimals decides.
     Rule(
-        "METRIC_PRECISION",
-        r"\b(?:AUROC|AUC|AUPRC|sensitivity|specificity)\s*(?:=|of|was|:)?\s*0\.\d{3,}\b",
-        "Headline metric appears to use more than two decimals.",
-        "Round AUROC and related headline metrics to two decimals in the manuscript and abstract.",
-        re.IGNORECASE,
-    ),
-    # Values below 0.1 may carry three decimals; values at or above 0.1 may not. This
-    # catches table cells and confidence-interval bounds, where the metric name is not
-    # adjacent and the name-anchored rule above never fires.
-    Rule(
-        "DECIMAL_PRECISION_GE_0_1",
-        r"\b0\.[1-9]\d{2,}\b",
-        "Value at or above 0.1 uses more than two decimals.",
-        "Two decimals everywhere a reader can see them: text, abstract, tables, figure "
-        "annotations, and both confidence-interval bounds. If two arms are identical at "
-        "two decimals, report the paired difference instead of adding a decimal.",
+        "DECIMAL_PRECISION",
+        r"\b\d+\.\d{2,}\s*%?",
+        "Number carries more decimals than the style permits.",
+        "Percentages take 1 decimal, values at or above 0.1 take 2, values below 0.1 "
+        "take 3. This applies everywhere a reader can see them: text, abstract, tables, "
+        "figure annotations, and both confidence-interval bounds. If two arms are "
+        "identical at two decimals, report the paired difference instead of adding a "
+        "decimal. For very small p values use scientific notation.",
+        0,
+        excess_decimals,
     ),
 ]
 
@@ -181,6 +203,8 @@ def regex_findings(text: str) -> list[Finding]:
     findings: list[Finding] = []
     for rule in RULES:
         for match in re.finditer(rule.pattern, text, rule.flags):
+            if rule.validator is not None and not rule.validator(match.group(0)):
+                continue
             line, column = line_col(starts, match.start())
             findings.append(
                 Finding(

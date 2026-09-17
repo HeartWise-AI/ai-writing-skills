@@ -3,12 +3,17 @@
 
 Implements the Step 0.5 gate of the manuscript-review skill:
 
-  1. Word budget per section, subsection, and paragraph.
+  1. Word budget per section, subsection, and paragraph, plus the Introduction
+     paragraph cap.
   2. Negative-space sentences that justify an absence instead of reporting a result.
   3. Material repeated between Introduction, Methods, and Discussion.
 
+Tables and figure legends are excluded from the counts, matching the budgets in
+SKILL.md, which are main-text only.
+
 Usage:
     python length_budget_qc.py draft.docx
+    python length_budget_qc.py draft.md --abstract-limit 250
     python length_budget_qc.py draft.md --no-fail
 """
 
@@ -27,9 +32,9 @@ W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 WORDS_PER_LINE = 13
 WORDS_PER_PAGE = 500
 
-# Budgets are word counts for the whole unit. See SKILL.md Step 0.5.
+# Whole-section word budgets. See SKILL.md Step 0.5. The Abstract is deliberately
+# absent: its budget is the target journal's limit, supplied with --abstract-limit.
 SECTION_BUDGETS = {
-    "abstract": 300,
     "introduction": 500,
     "background": 500,
     "methods": 1000,
@@ -39,11 +44,20 @@ SECTION_BUDGETS = {
     "conclusion": 250,
 }
 
-SUBSECTION_BUDGET = 130  # 10 lines, any Methods subsection, no exemption
+# 10 lines. SKILL.md applies this to Methods subsections only; subsections elsewhere
+# are governed by their section and paragraph budgets, so they are reported for
+# information and do not fail the gate.
+SUBSECTION_BUDGET = 130
+SUBSECTION_BUDGET_SECTIONS = ("methods",)
 
 PARAGRAPH_BUDGETS = {
     "results": 65,  # 5 lines
     "discussion": 50,  # 4 lines
+}
+
+PARAGRAPH_COUNT_BUDGETS = {
+    "introduction": 4,
+    "background": 4,
 }
 
 SECTION_NAMES = (
@@ -58,8 +72,28 @@ SECTION_NAMES = (
     "references",
 )
 
-SECTION_RE = re.compile(
+# A bare section name resolves anywhere, including an unstyled all-caps paragraph,
+# which is how many Word manuscripts mark RESULTS and DISCUSSION. A trailing colon
+# is excluded on purpose: "BACKGROUND:" on its own line is a structured abstract's
+# run-in label, not a section heading.
+SECTION_EXACT_RE = re.compile(
     r"^\s*(?:#{1,6}\s*)?(" + "|".join(SECTION_NAMES) + r")\s*$",
+    re.IGNORECASE,
+)
+
+# Trailing descriptive text ("METHODS AND MATERIALS") resolves only for a real
+# heading. Applying this to unstyled paragraphs breaks structured abstracts, whose
+# "Background: ..." and "Results: ..." run-in labels would each open a new section.
+SECTION_HEADING_RE = re.compile(
+    r"^\s*(?:#{1,6}\s*)?(" + "|".join(SECTION_NAMES) + r")\b[\s:.,;-]+(?:.*)$",
+    re.IGNORECASE,
+)
+MAX_HEADING_WORDS = 8
+
+CAPTION_RE = re.compile(
+    r"^\s*(?:supplementary\s+|extended\s+data\s+|online\s+)?"
+    r"(?:table|figure|fig\.?|chart|panel|box|appendix|e?table|e?figure)\s*"
+    r"(?:[0-9ivxIVX]+|S[0-9]+)\b",
     re.IGNORECASE,
 )
 
@@ -71,9 +105,16 @@ NEGATIVE_SPACE = [
     (r"\bis\s+not\s+applicable\b", "not-applicable filler"),
     (r"\bno\s+waiver\s+(?:was\s+)?sought\b", "waiver non-action"),
     (r"\bdoes\s+not\s+constitute\s+human[- ]subjects\s+research\b", "pre-emptive ethics defence"),
-    (r"\bwhich\s+(?:varies|depends|suits|conflates|ignores)\b", "rationale for a standard method"),
-    (r"\bis\s+interpreted\s+against\b", "metric pedagogy"),
-    (r"\brather\s+than\s+(?:intervention|inferring|by\b)", "meta-commentary on approach"),
+    # Anchored to a metric. Unanchored, this matched any clause of the form
+    # "the effect, which varies by age, was largest", which is a substantive result.
+    (
+        r"\b(?:AUROC|AUPRC|AUC|F1|accuracy|sensitivity|specificity|precision|recall|"
+        r"prevalence|the\s+metric|this\s+metric)\b[^.]{0,60}?,?\s*which\s+"
+        r"(?:varies|depends|suits|conflates|ignores)\b",
+        "rationale for a standard method",
+    ),
+    (r"\bis\s+interpreted\s+against\s+its\b", "metric pedagogy"),
+    (r"\brather\s+than\s+(?:intervention|inferring)\b", "meta-commentary on approach"),
     (r"\bare\s+computed\s+from\s+the\s+analy[sz]ed\s+cohort\s+itself\b", "self-evident provenance"),
 ]
 
@@ -90,6 +131,11 @@ REDUNDANCY_PAIRS = [
     ("introduction", "discussion"),
     ("methods", "discussion"),
 ]
+
+NARRATIVE_SECTIONS = ("introduction", "background", "methods", "discussion")
+
+ENTITY_RE = re.compile(r"\b(?:[A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+|[A-Z]{3,})\b")
+STOP_ENTITIES = {"AUROC", "AUPRC", "ECG", "ECGS", "AND", "THE", "FOR", "WITH", "NOT", "ALL"}
 
 
 @dataclass
@@ -109,18 +155,60 @@ def read_paragraphs(path: Path | None) -> list[tuple[str, str]]:
     if path is not None and path.suffix.lower() == ".docx":
         return read_docx(path)
     text = path.read_text(encoding="utf-8") if path else sys.stdin.read()
+    return parse_markdown(text)
+
+
+def parse_markdown(text: str) -> list[tuple[str, str]]:
+    """Parse Markdown, honouring heading levels and blank-line paragraph breaks.
+
+    Conventionally wrapped prose must be joined: treating each physical line as a
+    paragraph lets a 100-word paragraph slip under a 65-word budget.
+    """
     out: list[tuple[str, str]] = []
+    buffer: list[str] = []
+
+    def flush() -> None:
+        if buffer:
+            out.append(("", " ".join(buffer).strip()))
+            buffer.clear()
+
     for raw in text.split("\n"):
         line = raw.strip()
         if not line:
+            flush()
             continue
-        if line.startswith("### "):
-            out.append(("h2", line[4:].strip()))
-        elif line.startswith("#"):
-            out.append(("h1", line.lstrip("#").strip()))
-        else:
-            out.append(("", line))
+        if line.startswith("#"):
+            flush()
+            level = len(line) - len(line.lstrip("#"))
+            heading = line[level:].strip()
+            # A canonical section name is a section at any heading level, so that
+            # "# Methods" then "## Statistical analysis" nests correctly.
+            out.append(("h1" if normalize_section(heading, styled=True) else "h2", heading))
+            continue
+        if CAPTION_RE.match(line):
+            flush()
+            continue
+        buffer.append(line)
+    flush()
     return out
+
+
+def iter_body_paragraphs(root: ElementTree.Element) -> list[ElementTree.Element]:
+    """Yield w:p elements outside of tables, in document order."""
+    found: list[ElementTree.Element] = []
+
+    def walk(node: ElementTree.Element) -> None:
+        for child in node:
+            if child.tag == W + "tbl":
+                continue  # table content is excluded from main-text budgets
+            if child.tag == W + "p":
+                found.append(child)
+            else:
+                walk(child)
+
+    body = root.find(W + "body")
+    walk(body if body is not None else root)
+    return found
 
 
 def read_docx(path: Path) -> list[tuple[str, str]]:
@@ -131,25 +219,39 @@ def read_docx(path: Path) -> list[tuple[str, str]]:
             raise SystemExit(f"{path}: not a valid docx file") from exc
     root = ElementTree.fromstring(xml_bytes)
     out: list[tuple[str, str]] = []
-    for p in root.iter(W + "p"):
-        # Skip text marked as deleted so tracked-change drafts measure the accepted state.
+    for p in iter_body_paragraphs(root):
+        # w:t only, so text marked deleted (w:delText) is excluded and a
+        # tracked-change draft measures its accepted state.
         text = "".join(node.text or "" for node in p.iter(W + "t")).strip()
         if not text:
             continue
         style_node = p.find(f"{W}pPr/{W}pStyle")
         style = style_node.get(W + "val") if style_node is not None else ""
-        if style.startswith("Heading1") or style == "Heading1":
+        if "caption" in style.lower() or CAPTION_RE.match(text):
+            continue  # figure legends and table titles are not main text
+        if style.startswith("Heading1"):
             out.append(("h1", text))
-        elif style.startswith("Heading2") or style == "Heading2":
+        elif style.startswith("Heading") and style != "Heading1":
             out.append(("h2", text))
         else:
             out.append(("", text))
     return out
 
 
-def normalize_section(name: str) -> str | None:
-    match = SECTION_RE.match(name)
-    return match.group(1).lower() if match else None
+def normalize_section(name: str, styled: bool = False) -> str | None:
+    """Resolve a heading to a canonical section name.
+
+    `styled` means the source marked this as a heading (a Markdown `#` line or a
+    Word Heading style). Only then is trailing descriptive text allowed.
+    """
+    match = SECTION_EXACT_RE.match(name)
+    if match:
+        return match.group(1).lower()
+    if styled and len(name.split()) <= MAX_HEADING_WORDS:
+        match = SECTION_HEADING_RE.match(name)
+        if match:
+            return match.group(1).lower()
+    return None
 
 
 def build_units(paragraphs: list[tuple[str, str]]) -> list[Unit]:
@@ -158,13 +260,18 @@ def build_units(paragraphs: list[tuple[str, str]]) -> list[Unit]:
     current: Unit | None = None
 
     for style, text in paragraphs:
-        as_section = normalize_section(text)
-        if as_section or style == "h1":
-            section = as_section or text.lower()
+        styled = style in ("h1", "h2")
+        as_section = normalize_section(text, styled=styled)
+        # Inside an Abstract, an unstyled "Methods"/"Results" line is a run-in label
+        # for the abstract's own structure, not the start of the real section.
+        if as_section and section == "abstract" and not styled and as_section != "abstract":
+            as_section = None
+        if as_section:
+            section = as_section
             current = Unit("section", section, section)
             units.append(current)
             continue
-        if style == "h2":
+        if style in ("h1", "h2"):
             current = Unit("subsection", text, section)
             units.append(current)
             continue
@@ -184,40 +291,69 @@ def shingles(text: str, n: int = REDUNDANCY_N) -> set[str]:
     return {" ".join(words[i : i + n]) for i in range(max(0, len(words) - n + 1))}
 
 
-def report_budgets(units: list[Unit]) -> int:
+def report_budgets(units: list[Unit], abstract_limit: int | None) -> int:
     failures = 0
+    budgets = dict(SECTION_BUDGETS)
+    if abstract_limit is not None:
+        budgets["abstract"] = abstract_limit
+
     section_totals: dict[str, int] = {}
+    section_paragraphs: dict[str, int] = {}
     for unit in units:
         if unit.section in ("references", "front matter"):
             continue
         section_totals[unit.section] = section_totals.get(unit.section, 0) + unit.words
+        section_paragraphs[unit.section] = section_paragraphs.get(unit.section, 0) + len(unit.paragraphs)
 
     print("== Section budgets ==")
     for section, words in section_totals.items():
-        budget = SECTION_BUDGETS.get(section)
+        budget = budgets.get(section)
         if budget is None:
+            if section == "abstract":
+                print(
+                    f"  [info] abstract       {words:6d} w  "
+                    f"budget is the journal limit; pass --abstract-limit N to enforce"
+                )
             continue
-        status = "OVER" if words > budget else "ok"
-        if words > budget:
-            failures += 1
+        over = words > budget
+        failures += over
         print(
-            f"  [{status:4s}] {section:14s} {words:6d} w "
+            f"  [{'OVER' if over else 'ok':4s}] {section:14s} {words:6d} w "
             f"(~{words / WORDS_PER_PAGE:.1f} pages)  budget {budget} w  "
             f"ratio {words / budget:.1f}x"
         )
 
-    print("\n== Subsection budgets (10 lines / 130 words) ==")
+    print("\n== Paragraph-count budgets ==")
+    any_count = False
+    for section, limit in PARAGRAPH_COUNT_BUDGETS.items():
+        if section not in section_paragraphs:
+            continue
+        any_count = True
+        count = section_paragraphs[section]
+        over = count > limit
+        failures += over
+        print(f"  [{'OVER' if over else 'ok':4s}] {section:14s} {count} paragraphs  budget {limit}")
+    if not any_count:
+        print("  (no budgeted sections found)")
+
+    print(f"\n== Subsection budgets ({SUBSECTION_BUDGET} words, enforced in Methods) ==")
     any_sub = False
     for unit in units:
         if unit.kind != "subsection" or not unit.words:
             continue
         any_sub = True
+        enforced = unit.section in SUBSECTION_BUDGET_SECTIONS
         over = unit.words > SUBSECTION_BUDGET
-        if over:
+        if over and enforced:
             failures += 1
+            status = "OVER"
+        elif over:
+            status = "info"
+        else:
+            status = "ok"
         print(
-            f"  [{'OVER' if over else 'ok':4s}] {unit.name[:44]:44s} {unit.words:5d} w "
-            f"(~{unit.words / WORDS_PER_LINE:.0f} lines)  ratio {unit.words / SUBSECTION_BUDGET:.1f}x"
+            f"  [{status:4s}] {unit.name[:40]:40s} ({unit.section[:10]:10s}) {unit.words:5d} w "
+            f"(~{unit.words / WORDS_PER_LINE:.0f} lines)"
         )
     if not any_sub:
         print("  (no subsection headings detected)")
@@ -262,16 +398,12 @@ def report_negative_space(units: list[Unit]) -> int:
     return hits
 
 
-ENTITY_RE = re.compile(r"\b(?:[A-Z][A-Za-z0-9]*(?:-[A-Za-z0-9]+)+|[A-Z]{3,})\b")
-
-STOP_ENTITIES = {"AUROC", "AUPRC", "ECG", "ECGS", "AND", "THE", "FOR", "WITH", "NOT", "ALL"}
-
-
 def report_redundancy(units: list[Unit]) -> int:
     """Verbatim repetition plus entities described in more than one section.
 
-    Exact n-gram overlap catches copy-paste. The entity pass catches the more common
-    case: the same model or dataset introduced from scratch in two places.
+    Verbatim overlap is a defect and counts toward the gate. The entity pass is a
+    weaker signal (a model must be named in Results as well as Methods), so it is
+    advisory and reported for human judgement.
     """
     print(f"\n== Cross-section repetition ({REDUNDANCY_N}-word spans) ==")
     text_by_section: dict[str, list[str]] = {}
@@ -288,16 +420,15 @@ def report_redundancy(units: list[Unit]) -> int:
         if not shared:
             continue
         total += len(shared)
-        print(f"  {left} <-> {right}: {len(shared)} shared spans")
+        print(f"  [OVER] {left} <-> {right}: {len(shared)} shared spans")
         for span in sorted(shared)[:5]:
             print(f"      \"{span}\"")
     if not total:
         print("  no verbatim overlap")
 
-    print("\n== Entities introduced in more than one section ==")
-    narrative = ("introduction", "background", "methods", "discussion")
+    print("\n== Entities introduced in more than one section (advisory) ==")
     counts: dict[str, dict[str, int]] = {}
-    for section in narrative:
+    for section in NARRATIVE_SECTIONS:
         for paragraph in text_by_section.get(section, []):
             for entity in ENTITY_RE.findall(paragraph):
                 if entity.upper() in STOP_ENTITIES or len(entity) < 4:
@@ -307,8 +438,7 @@ def report_redundancy(units: list[Unit]) -> int:
 
     flagged = 0
     for entity, per_section in sorted(counts.items(), key=lambda kv: -sum(kv[1].values())):
-        sections = [s for s, n in per_section.items() if n >= 2]
-        if len(sections) >= 2:
+        if len(per_section) >= 2:
             flagged += 1
             spread = ", ".join(f"{s}={per_section[s]}" for s in sorted(per_section))
             print(f"  {entity:38s} {spread}")
@@ -322,6 +452,13 @@ def report_redundancy(units: list[Unit]) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("path", nargs="?", type=Path, help="Draft docx, Markdown, or text. Reads stdin when omitted.")
+    parser.add_argument(
+        "--abstract-limit",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Target journal's abstract word limit. Omitted, the Abstract is reported but not enforced.",
+    )
     parser.add_argument("--no-fail", action="store_true", help="Always exit 0.")
     args = parser.parse_args()
 
@@ -329,11 +466,11 @@ def main() -> int:
     label = str(args.path) if args.path else "<stdin>"
     print(f"{label}\n")
 
-    failures = report_budgets(units)
+    failures = report_budgets(units, args.abstract_limit)
     failures += report_negative_space(units)
-    report_redundancy(units)
+    failures += report_redundancy(units)
 
-    print(f"\n== Summary ==\n  {failures} unit(s) over budget or carrying deletable negative space")
+    print(f"\n== Summary ==\n  {failures} finding(s): over budget, deletable negative space, or verbatim repetition")
     if failures:
         print("  Compress before content review (SKILL.md Step 0.5).")
     return 0 if args.no_fail else (1 if failures else 0)
