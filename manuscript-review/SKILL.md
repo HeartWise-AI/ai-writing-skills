@@ -1,6 +1,6 @@
 ---
 name: manuscript-review
-description: Comprehensive checklist for reviewing academic medical AI manuscripts, covering objective identification, Background, Methods, Results, Tables, Discussion, and Abstract sections with success criteria for each. Use when reviewing or evaluating a manuscript draft.
+description: Comprehensive checklist for reviewing academic medical AI manuscripts, covering a length and information-density gate, objective identification, Background, Methods, Results, Tables, Discussion, and Abstract sections with success criteria for each. Enforces hard word budgets, compression without information loss, and two-decimal metric reporting. Use when reviewing, compressing, or evaluating a manuscript draft.
 ---
 
 # Claude Code Skill: AI Manuscript Section Reviewer
@@ -23,7 +23,8 @@ Run full manuscript checklist
 
 Reusable assets in this skill:
 
-- `scripts/typography_qc.py`: regex-based typography and abbreviation audit for pre-submission drafts
+- `scripts/length_budget_qc.py`: section and subsection word-budget audit, negative-space sentence detector, and cross-section redundancy check. Run this first
+- `scripts/typography_qc.py`: regex-based typography, metric-precision, and abbreviation audit for pre-submission drafts
 - `templates/label_noise_sensitivity_template.md`: reviewer-ready label-noise sensitivity analysis template
 - `templates/failure_mode_panel_template.md`: supplementary failure-mode panel template
 - `templates/failure_mode_panel_template.ipynb`: executable failure-mode panel notebook skeleton
@@ -62,6 +63,94 @@ EXTRACT objectives from manuscript:
 
 ---
 
+## Step 0.5: Length and Information Density Gate
+
+Run this before any section-level review. Over-length is the most frequent and most expensive defect in an AI-assisted draft, and no other checklist in this skill detects it. A draft that fails this gate is returned for compression before its content is reviewed.
+
+### Hard budgets
+
+Main text only, excluding tables, figure legends, and references. One manuscript line is approximately 13 words. One page is approximately 500 words.
+
+| Unit | Budget | Notes |
+|------|--------|-------|
+| Introduction | 500 words, 4 paragraphs | |
+| Methods, whole section | 800 to 1,000 words | Everything else is routed to Supplement |
+| Any Methods subsection | 10 lines, 130 words | Statistical analysis included, no exemption |
+| A method already published by the same group | 1 sentence | Cite the source publication, do not restate it |
+| Results, whole section | 1 to 1.5 pages, 500 to 750 words | Excluding tables |
+| Results paragraph | 5 lines, 65 words | One claim and its numbers |
+| Discussion, whole section | 900 words | |
+| Discussion paragraph | 4 lines, 50 words | |
+| Limitations | 200 words | |
+| Abstract | Journal limit | No exemption |
+
+Measure before reviewing content. Report the measured number next to the budget for every unit, not a verdict.
+
+### Compress by deleting the explaining, not the facts
+
+Concision is not omission. Every reportable fact survives compression: cohort counts, date ranges, sampling rates, statistical tests, confidence-interval methods, suppression thresholds, harmonization decisions. What gets deleted is the prose wrapped around them.
+
+Delete on sight:
+
+- **Rationale for a standard method.** "AUROC, which suits comparison across cohorts" becomes "AUROC".
+- **Pedagogy.** Explaining what AUPRC means against its no-skill baseline, or why scoring two models on identical recordings induces correlation, belongs in a textbook, not in Methods.
+- **Pre-emptive defence against an imagined reviewer.** If the point is real it belongs in Limitations, in one sentence.
+- **Meta-commentary on the authors' own approach.** "Fairness was addressed by measurement rather than intervention" adds nothing the next sentence does not already say.
+- **Restatement across sections.** Any model, dataset, or concept described in the Introduction is not re-described in Methods or Discussion. Pick one location, cite it from the other.
+
+Compress by chaining retained facts with semicolons inside one sentence, rather than giving each fact its own sentence. A 400-word fairness-methods passage compresses to one 150-word sentence with zero information loss.
+
+### Report what you did, not what you did not
+
+Delete negative-space sentences whose only function is to justify an absence:
+
+- "No sample size calculation was performed."
+- "We do not report F1, which varies with prevalence and has no direct clinical interpretation."
+- "Ethics approval was not required and was not obtained."
+- "No waiver was sought. Patient consent is not applicable."
+- "Both tables are computed from the analyzed cohort itself."
+
+Keep a negative only when it is a required reporting element that changes how a reader interprets the result:
+
+- No correction for multiple comparisons, stated alongside the p values.
+- Missing-data handling.
+- No fairness constraint, reweighting, or group-specific threshold applied, when fairness is being measured.
+- Absence of prospective validation, in Limitations.
+
+**Test:** if the sentence would be equally true of a paper whose authors never considered the issue, delete it. If its absence would let a reader over-read the result, keep it.
+
+### Merge, and route detail to the Supplement with a citation
+
+- Adjacent subsections describing the same object get merged. Data source and eligibility criteria are one paragraph, not two subsections.
+- Detail removed from the main text goes to a named supplementary table or section, and the main text cites it **at the exact point the detail was removed**. "Mapping is given in Supplementary Table S4" is the compressed form of three paragraphs of mapping.
+- Never delete a fact without a destination. Compression that loses information is a failed review, not a successful one.
+
+### Calibration
+
+Author-marked targets against a submitted AI-assisted draft (DeepECG Harvard-Emory v2.0, September 2026):
+
+| Unit | Draft | Author target | Overshoot |
+|------|-------|---------------|-----------|
+| Statistical analysis subsection | 1,348 words | 10 lines | 11x |
+| Models and inference subsection | 482 words | 4 to 5 lines | 8x |
+| Data sources plus Participants | 535 words | 5 lines, merged | 9x |
+| Results section | 4,216 words | 1 to 1.5 pages | 6x |
+| Discussion section | 1,862 words | Half | 2x |
+| Prior-validation paragraph, Introduction | 140 words | 1 sentence | 5x |
+| Development-data paragraph | 85 words | 1 sentence | 3x |
+
+An AI-assisted draft that has not been through this gate typically runs 5 to 10x over budget in Methods and Results. Assume it does until measured.
+
+### Executable check
+
+```
+python manuscript-review/scripts/length_budget_qc.py <draft.docx>
+```
+
+Reports words and page estimate per section and subsection against the budgets above, flags every unit over budget, lists candidate negative-space sentences, and reports material repeated between Introduction, Methods, and Discussion. Run it before and after compression and report both numbers.
+
+---
+
 ## Section Definitions & Success Checklists
 
 ### 1. Background Section
@@ -91,6 +180,8 @@ FOR each paragraph in Background:
 - **Gaps Map to Contributions**: Every gap directly motivates a contribution
 - **Paper Roadmap Included**: Reader knows what to expect in subsequent sections
 - **No Overclaiming**: Novelty stated relative to prior work without exaggeration
+- **Within Budget**: 500 words and 4 paragraphs maximum (Step 0.5). A paragraph enumerating prior cohorts, datasets, or model variants collapses to one sentence with the detail in a table or the Supplement
+- **Not Repeated Downstream**: Models and datasets described here are not described again in Methods or Discussion
 
 ---
 
@@ -129,6 +220,11 @@ FOR each subsection in Methods:
 - **Sensitivity Analysis Specified**: Assumptions to be varied are listed for both primary and secondary objectives
 - **Statistical Methods Specified**: Tests, Confidence Intervals (CI), significance thresholds defined
 - **Supplement Routing Correct**: Extended preprocessing, hyperparameter search, ablation experiments, heterogeneity assessment, model updating, and extended sensitivity analyses are in Supplement, not main text
+- **Supplement Citation at Point of Removal**: Every block routed to the Supplement leaves a citation to a named supplementary table or section at the exact place the detail was removed. FAIL if detail disappears without a destination
+- **Within Budget**: Whole section 800 to 1,000 words; every subsection 10 lines or 130 words, Statistical analysis included (Step 0.5)
+- **Previously Published Methods Cited, Not Restated**: Model development and prior validation already reported by the same group are compressed to one sentence plus citation. FAIL if training cohorts, dates, or hyperparameters are re-enumerated
+- **Adjacent Subsections Merged**: Data source, eligibility, and unit of analysis describing the same cohort appear as one paragraph, not separate subsections
+- **No Negative-Space Justification**: No sentence exists solely to explain what was not done (no sample size calculation, metrics not reported, waiver not sought). Required negatives (multiplicity, missing data, no fairness intervention) are retained in one clause each
 - **TRIPOD-AI Compliant**: Cross-reference with Transparent Reporting of a Multivariable Prediction Model for Individual Prognosis or Diagnosis (TRIPOD)-AI checklist items
 
 ---
@@ -164,6 +260,9 @@ FOR each paragraph in Results:
 - **Tables/Figures in Order**: Referenced sequentially as they appear
 - **No Em Dashes**: Use commas, parentheses, or separate sentences instead
 - **Statistics Complete**: Point estimates with 95% CI or p-values included
+- **Within Budget**: Whole section 1 to 1.5 pages or 500 to 750 words excluding tables; each paragraph 5 lines or 65 words carrying one claim and its numbers (Step 0.5)
+- **Strata Summarized, Not Enumerated**: When a stratified analysis is uninformative, state the conclusion and one representative figure, then cite the supplementary table. FAIL if every level of every stratum is spelled out in prose
+- **Exclusion Counts Itemized**: Each exclusion branch reports its own n by reason (unreadable waveform, missing lead, signal shorter than required duration), not one lumped count. Proportions below 0.01% are reported as `<0.01%`
 
 ---
 
@@ -191,6 +290,8 @@ FOR each table in manuscript:
 | Percentages | 1 | 7.6% |
 | 95% CI | Match point estimate | 0.85 (0.79 to 0.91) |
 
+**Two decimals is absolute.** It applies to every occurrence of a headline metric: abstract, main text, table cells, figure axes, bar labels, in-figure annotations, and **both bounds of every confidence interval**. `0.945 (0.941 to 0.948)` is a FAIL; `0.94 (0.94 to 0.95)` is correct. A three-decimal value is not permitted anywhere a reader can see it, including when the second decimal makes two arms look identical. If two arms are indistinguishable at two decimals, report the paired difference instead of adding a decimal.
+
 **Success Checklist:**
 
 - **Correct Metrics Used**: AUROC, AUPRC, Sensitivity, Specificity, PPV, NPV only (NO F1, recall, accuracy)
@@ -206,6 +307,8 @@ FOR each table in manuscript:
 - **Sample Sizes Complete**: Format: events/total (X.X%)
 - **Consistent CI Spacing**: 0.85 (0.79 to 0.91) with space before parenthesis
 - **No Vertical Lines**: Horizontal rules only
+- **Headline Metric Emphasized**: The primary metric column or value is bold so the reader finds it without searching
+- **Historical Comparators Marked**: Cohorts or performance figures carried over from a prior publication are marked with an asterisk, footnoted as a historical comparison, and rendered in a lighter shade or washed-out fill so they are visually separable from the present study's results. FAIL if prior and current results share identical styling
 
 ---
 
@@ -250,6 +353,9 @@ FOR each paragraph in Discussion:
 - **Limitations Clearly Present**: Dedicated section acknowledging study weaknesses and threats to validity
 - **Final Paragraph = Conclusion**: Last paragraph summarizes implications
 - **No New Results Introduced**: All data presented in Results section only
+- **Within Budget**: Whole section 900 words; each paragraph 4 lines or 50 words; Limitations 200 words (Step 0.5)
+- **No Re-Description of Methods or Models**: Comparator models and datasets are named, not re-explained. If the Introduction already described them, cite it
+- **Negative Findings Stated Plainly**: Where a hypothesized advantage did not materialize, say so in one sentence and give the mechanistic candidate, rather than arguing around it
 
 ---
 
@@ -312,7 +418,9 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 ### 5. Label noise and report-derived ground truth
 
-- For labels derived from clinical reports, LLM extraction, or NLP pipelines, require a human-adjudicated audit on a random sample.
+- For labels derived from clinical reports, LLM extraction, or NLP pipelines, require a human-adjudicated audit on a random sample. Do not accept a cited extractor performance figure in place of an audit on this cohort.
+- Audit protocol: sample 100 to 200 source strings stratified so every class appears at least once, annotate each extraction as correct, partial, or incorrect, and grade the error type. Name the classes the extractor misses rather than reporting one pooled accuracy.
+- Multi-label completeness is what is being tested, not single-label accuracy. A source string reading "rapid atrial fibrillation with PVCs and left bundle branch block" must return atrial fibrillation, tachycardia, premature ventricular complexes, and left bundle branch block. A result returning only the dominant label is a partial, not a correct.
 - Report per-class precision and recall for the extraction process.
 - Add a confusion matrix between report-derived and adjudicated labels when both exist.
 - Require a retrain-on-clean-labels or evaluate-on-clean-labels sensitivity analysis when feasible.
@@ -353,8 +461,8 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 ### 11. Statistical reporting and typography
 
-- Report AUROC and similar headline metrics to two decimals in the abstract and main text.
-- Do not use three-decimal precision in the abstract.
+- Report AUROC and similar headline metrics to two decimals everywhere a reader can see them: abstract, main text, tables, figure axes, figure annotations, and both bounds of every confidence interval.
+- Do not use three-decimal precision anywhere, including to separate two arms that are identical at two decimals. Report the paired difference instead.
 - Use "to" for numeric ranges unless journal style requires otherwise.
 - Use lowercase italic *p* for p values.
 - Avoid `vs.`, `approx`, `i.e.`, and `e.g.` in polished submission text.
@@ -372,6 +480,7 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 - Require a CONSORT-style flow diagram when more than 20% of available data is excluded.
 - Every exclusion branch must include reason and count.
+- Mark any cohort or performance figure carried over from a prior publication with an asterisk, footnote it as a historical comparison, and render it in a lighter shade than the present study's results.
 - Confirm all figure labels remain legible at print resolution and 100% scale.
 - Flag overlapping labels, missing denominators, and unclear panel references.
 
@@ -404,6 +513,7 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 ### Cross-cutting submission discipline
 
+- The Step 0.5 length gate is passed before the manuscript is declared review-complete. A draft that is factually correct and 6x over budget has not passed review.
 - The manuscript must be readable end-to-end without requiring the supplement for sample sizes, denominators, or headline metric definitions.
 - Abstract headline metrics must match the corresponding table values exactly to the second decimal.
 - Build the reusable artifacts before submission: typography QC output, label-noise sensitivity table, failure-mode panel, CONSORT flow, and Table 1 denominators.
@@ -414,6 +524,10 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 ```
 RUN full_review():
+  RUN length_budget_gate()          # Step 0.5, blocking
+  IF any unit > budget:
+    REPORT measured vs budget per unit
+    RETURN "compress before content review"
   sections = [Objectives, Background, Methods, Results, Tables, Discussion, Abstract, ReviewerPatterns]
   FOR section in sections:
     PRINT "=== Reviewing {section} ==="
@@ -442,5 +556,14 @@ RUN full_review():
 | `vs.` | `versus` or `compared with` |
 | `i.e.` or `e.g.` | `that is`, `for example`, or direct wording |
 | `mean +/- SD` | `mean (SD)` |
+| Three-decimal metrics anywhere, including CI bounds | Two decimals, or report the paired difference |
+| Rationale for a standard method | Name the method and stop |
+| Explaining what a metric means | Cite it; the reader knows |
+| "No sample size calculation was performed" | Delete. Report what you did |
+| "We do not report X because..." | Delete. Report what you report |
+| Restating the Introduction inside Methods or Discussion | Describe once, cite from the other location |
+| Re-enumerating a previously published method | One sentence plus citation |
+| Two subsections describing one cohort | One merged paragraph |
+| Deleting detail with no destination | Route to a named supplementary table and cite it in place |
 | Pearson r or ICC alone for agreement | Bland-Altman with limits of agreement |
 | 510(k) framed as clinical validation | State as substantial equivalence to a predicate device only |

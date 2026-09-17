@@ -103,7 +103,21 @@ RULES = [
         "Round AUROC and related headline metrics to two decimals in the manuscript and abstract.",
         re.IGNORECASE,
     ),
+    # Values below 0.1 may carry three decimals; values at or above 0.1 may not. This
+    # catches table cells and confidence-interval bounds, where the metric name is not
+    # adjacent and the name-anchored rule above never fires.
+    Rule(
+        "DECIMAL_PRECISION_GE_0_1",
+        r"\b0\.[1-9]\d{2,}\b",
+        "Value at or above 0.1 uses more than two decimals.",
+        "Two decimals everywhere a reader can see them: text, abstract, tables, figure "
+        "annotations, and both confidence-interval bounds. If two arms are identical at "
+        "two decimals, report the paired difference instead of adding a decimal.",
+    ),
 ]
+
+# Cap per-rule output so one table-wide violation does not bury every other finding.
+MAX_PER_RULE = 10
 
 
 SECTION_RE = re.compile(
@@ -243,10 +257,24 @@ def main() -> int:
         print(f"{label}: OK")
         return 0
 
+    counts: dict[str, int] = {}
     for item in findings:
+        counts[item.code] = counts.get(item.code, 0) + 1
+
+    shown: dict[str, int] = {}
+    for item in findings:
+        shown[item.code] = shown.get(item.code, 0) + 1
+        if shown[item.code] > MAX_PER_RULE:
+            continue
         print(f"{label}:{item.line}:{item.column}: {item.code}: {item.message}")
         print(f"  text: {item.excerpt}")
         print(f"  suggestion: {item.suggestion}")
+        if shown[item.code] == MAX_PER_RULE and counts[item.code] > MAX_PER_RULE:
+            print(f"  ... and {counts[item.code] - MAX_PER_RULE} more {item.code} finding(s)")
+
+    print("\n== Totals by rule ==")
+    for code, count in sorted(counts.items(), key=lambda kv: -kv[1]):
+        print(f"  {code:26s} {count}")
 
     return 0 if args.no_fail else 1
 
