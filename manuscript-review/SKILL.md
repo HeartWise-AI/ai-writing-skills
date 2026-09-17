@@ -24,6 +24,7 @@ Run full manuscript checklist
 Reusable assets in this skill:
 
 - `scripts/length_budget_qc.py`: section and subsection word-budget audit, negative-space sentence detector, and cross-section redundancy check. Run this first
+- `scripts/test_qc.py`: contract tests for both QC scripts. Run after changing either one
 - `scripts/typography_qc.py`: regex-based typography, metric-precision, and abbreviation audit for pre-submission drafts
 - `templates/label_noise_sensitivity_template.md`: reviewer-ready label-noise sensitivity analysis template
 - `templates/failure_mode_panel_template.md`: supplementary failure-mode panel template
@@ -75,14 +76,14 @@ Main text only, excluding tables, figure legends, and references. One manuscript
 |------|--------|-------|
 | Introduction | 500 words, 4 paragraphs | |
 | Methods, whole section | 800 to 1,000 words | Everything else is routed to Supplement |
-| Any Methods subsection | 10 lines, 130 words | Statistical analysis included, no exemption |
+| Any Methods subsection | 10 lines, 130 words | Statistical analysis included, no exemption. Subsections elsewhere answer to their section and paragraph budgets |
 | A method already published by the same group | 1 sentence | Cite the source publication, do not restate it |
 | Results, whole section | 1 to 1.5 pages, 500 to 750 words | Excluding tables |
 | Results paragraph | 5 lines, 65 words | One claim and its numbers |
 | Discussion, whole section | 900 words | |
 | Discussion paragraph | 4 lines, 50 words | |
 | Limitations | 200 words | |
-| Abstract | Journal limit | No exemption |
+| Abstract | Journal limit | Pass it with `--abstract-limit`; not enforced otherwise |
 
 Measure before reviewing content. Report the measured number next to the budget for every unit, not a verdict.
 
@@ -127,14 +128,14 @@ Keep a negative only when it is a required reporting element that changes how a 
 
 ### Calibration
 
-Author-marked targets against a submitted AI-assisted draft (DeepECG Harvard-Emory v2.0, September 2026):
+Author-marked targets against a submitted AI-assisted draft (DeepECG Harvard-Emory v2.0, September 2026). Word counts are main text only, with tables and figure legends excluded:
 
 | Unit | Draft | Author target | Overshoot |
 |------|-------|---------------|-----------|
 | Statistical analysis subsection | 1,348 words | 10 lines | 11x |
 | Models and inference subsection | 482 words | 4 to 5 lines | 8x |
 | Data sources plus Participants | 535 words | 5 lines, merged | 9x |
-| Results section | 4,216 words | 1 to 1.5 pages | 6x |
+| Results section | 3,371 words | 1 to 1.5 pages | 4.5x |
 | Discussion section | 1,862 words | Half | 2x |
 | Prior-validation paragraph, Introduction | 140 words | 1 sentence | 5x |
 | Development-data paragraph | 85 words | 1 sentence | 3x |
@@ -144,10 +145,20 @@ An AI-assisted draft that has not been through this gate typically runs 5 to 10x
 ### Executable check
 
 ```
-python manuscript-review/scripts/length_budget_qc.py <draft.docx>
+python manuscript-review/scripts/length_budget_qc.py <draft.docx> --abstract-limit 350
 ```
 
-Reports words and page estimate per section and subsection against the budgets above, flags every unit over budget, lists candidate negative-space sentences, and reports material repeated between Introduction, Methods, and Discussion. Run it before and after compression and report both numbers.
+Reports words and page estimate per section and subsection against the budgets above, flags every unit over budget, counts Introduction paragraphs against the 4-paragraph cap, lists candidate negative-space sentences, and reports material repeated between Introduction, Methods, and Discussion. Run it before and after compression and report both numbers.
+
+What it counts and what it does not:
+
+- Tables, table titles, and figure legends are excluded, because the budgets are main text only. A draft measured with them included will read several thousand words heavier than it is.
+- `--abstract-limit` takes the target journal's word limit. Without it the Abstract is reported but not enforced, since there is no universal limit to enforce.
+- The 130-word subsection budget fails the gate in Methods only. Subsections elsewhere are reported for information and answer to their section and paragraph budgets.
+- Verbatim cross-section repetition fails the gate. The entity pass (the same model or dataset described in two sections) is advisory, because a model must legitimately be named in more than one place.
+- Structured abstracts are handled: a standalone `BACKGROUND:` or `METHODS:` label inside the Abstract is not treated as the start of that section.
+
+After changing either QC script, run `python manuscript-review/scripts/test_qc.py`.
 
 ---
 
