@@ -78,6 +78,25 @@ clean = {f.code for f in tqc.regex_findings("AUROC was 0.94 (0.92 to 0.96).")}
 check("DECIMAL_PRECISION" not in clean, "compliant two-decimal reporting is not flagged", str(clean))
 
 # --------------------------------------------------------------------------
+print("\ntypography_qc: lowercase abbreviation inventory")
+# Contract: bpm, mmHg, msec, and SpO2 are audited; 95%, 15%, and 12-lead are not.
+bare = tqc.abbreviation_findings("Methods\nHeart rate was 80 bpm and pressure was 120 mmHg.\n")
+bare_text = " ".join(f.excerpt for f in bare)
+check("bpm" in bare_text and "mmHg" in bare_text, "bare bpm and mmHg are flagged", bare_text)
+defined = tqc.abbreviation_findings(
+    "Methods\nHeart rate was 80 beats per minute (bpm) and pressure was 120 millimetres of mercury (mmHg).\n"
+)
+defined_text = " ".join(f.excerpt for f in defined)
+check("bpm" not in defined_text and "mmHg" not in defined_text, "expanded bpm and mmHg are accepted", defined_text)
+numeric = tqc.abbreviation_findings("Methods\nA 12-lead tracing covered 15% of visits, with a 95% interval.\n")
+numeric_text = " ".join(f.excerpt for f in numeric)
+check(
+    "12-lead" not in numeric_text and "15%" not in numeric_text and "95%" not in numeric_text,
+    "95%, 15%, and 12-lead are not abbreviations",
+    numeric_text,
+)
+
+# --------------------------------------------------------------------------
 print("\nlength_budget_qc: Markdown heading levels")
 # Contract: '## Statistical analysis' under '# Methods' is a Methods subsection,
 # and its prose counts toward the Methods total rather than starting a new section.
