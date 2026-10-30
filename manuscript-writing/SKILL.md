@@ -16,7 +16,26 @@ A section-by-section guide for writing medical AI manuscripts, from blank page t
 - Report all metrics with **95% confidence intervals**
 - **No interpretation in Results** — keep interpretation in Discussion only
 - Maximum one acronym introduced per paragraph; spell out on first use
+- **Expand every abbreviation at first use, including dataset and model short names.** PTB-XL, MIMIC-IV-ECG, CODE-15%, MIMIC-IV, CPSC 2018, eICU, and NHANES are not exempt because they look like proper nouns. Write the name out once with the short form in parentheses, then reuse the short form. An unexpanded dataset name is a blocking defect, not a style nit. The `manuscript-review` skill enforces this as its G1 gate.
 - Never use F1-score, recall, or accuracy as primary performance metrics
+
+**Dataset names that must be expanded at first use.** Verify the wording against the dataset's own publication rather than guessing:
+
+| Short form | Expansion at first mention |
+|---|---|
+| PTB-XL | Physikalisch-Technische Bundesanstalt XL |
+| MIMIC-IV | Medical Information Mart for Intensive Care IV |
+| MIMIC-IV-ECG | Medical Information Mart for Intensive Care IV Electrocardiography module |
+| MIMIC-III | Medical Information Mart for Intensive Care III |
+| CODE-15% | Clinical Outcomes in Digital Electrocardiography 15% subset |
+| CODE-II | Clinical Outcomes in Digital Electrocardiography II |
+| CPSC 2018 | China Physiological Signal Challenge 2018 |
+| eICU | eICU Collaborative Research Database |
+| NHANES | National Health and Nutrition Examination Survey |
+| CHUM | Centre hospitalier de l'Universite de Montreal |
+| MHI | Montreal Heart Institute |
+
+UK Biobank has no abbreviation; write the full name every time. MIMIC-IV-ECG is the Electrocardiography module of MIMIC-IV, not a separate database, and CODE-15% is a 15% subset of the CODE dataset, not a dataset called CODE-15.
 
 ---
 
@@ -312,4 +331,5 @@ Report AUROC by: Age group, Sex, Disease severity (at minimum).
 - [ ] Final paragraph is Conclusion only
 - [ ] Code/model available on GitHub or HuggingFace
 - [ ] TRIPOD+AI checklist completed (attach as supplement)
+- [ ] Every abbreviation, including dataset and model short names (PTB-XL, MIMIC-IV-ECG, CODE-15%), expanded at first use
 - [ ] No em dashes anywhere in manuscript
