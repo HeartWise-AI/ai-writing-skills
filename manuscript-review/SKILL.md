@@ -39,7 +39,7 @@ Standing rules that apply to every manuscript review regardless of section. Add 
 
 ### G1. Every abbreviation must be expanded at first use. This is a blocking gate.
 
-No manuscript passes review with an unexpanded abbreviation. Every abbreviation, acronym, initialism, and dataset or model short name must be written out in full at its first appearance, with the short form in parentheses, before the section-by-section review proceeds.
+No manuscript passes review with an unexpanded abbreviation. Every abbreviation, acronym, initialism, and dataset or model short name must be written out in full at its first appearance in each major section, with the short form in parentheses. A failure blocks a pass. Report the abbreviation table and continue the review. Withhold "review complete" until every abbreviation failure is fixed. The length gate's own early return, when a unit is over budget, is unchanged.
 
 **It applies to four categories, all of which count:**
 
@@ -48,31 +48,38 @@ No manuscript passes review with an unexpanded abbreviation. Every abbreviation,
 3. Model, architecture, and method names: CNN, Transformer, LSTM, GAN, LLM.
 4. Institution, consortium, and standard names: MHI, IRB, TRIPOD, PRISMA, SCP-ECG.
 
-**Known dataset expansions to check on sight.** If any of these appear, the manuscript must expand it at first mention, and the reviewer must verify the expansion matches the dataset's own publication rather than a plausible guess:
+Do not flag ordinary numbers, ranges, version strings, or figure and table labels. A hyphen or a percent sign does not by itself make a token an abbreviation.
 
-| Short form | Required expansion at first mention |
-|---|---|
-| PTB-XL | Physikalisch-Technische Bundesanstalt XL (PTB-XL), the German clinical 12-lead ECG dataset |
-| MIMIC-IV | Medical Information Mart for Intensive Care IV (MIMIC-IV) |
-| MIMIC-IV-ECG | Medical Information Mart for Intensive Care IV Electrocardiography module (MIMIC-IV-ECG) |
-| MIMIC-III | Medical Information Mart for Intensive Care III (MIMIC-III) |
-| CODE-15% | Clinical Outcomes in Digital Electrocardiography 15% subset (CODE-15%) |
-| CODE-II | Clinical Outcomes in Digital Electrocardiography II (CODE-II) |
-| CPSC 2018 | China Physiological Signal Challenge 2018 (CPSC 2018) |
-| eICU | eICU Collaborative Research Database (eICU-CRD) |
-| NHANES | National Health and Nutrition Examination Survey (NHANES) |
-| UK Biobank | no abbreviation; write the full name every time |
-| CHUM | Centre hospitalier de l'Universite de Montreal (CHUM) |
-| MHI | Montreal Heart Institute (MHI) |
+**Known dataset expansions to check on sight.** If any of these appear, the manuscript must expand it at first mention in each major section. The expansion must match the dataset's own publication, not a plausible guess:
+
+| Short form | Expansion to accept | Reject |
+|---|---|---|
+| PTB-XL | Physikalisch-Technische Bundesanstalt electrocardiography dataset (PTB-XL). Source title: "PTB-XL, a large publicly available electrocardiography dataset" (Wagner et al.) | "Physikalisch-Technische Bundesanstalt XL". XL is not part of the institution name |
+| MIMIC-IV | Medical Information Mart for Intensive Care IV (MIMIC-IV) | |
+| MIMIC-IV-ECG | Diagnostic Electrocardiogram Matched Subset of MIMIC-IV (MIMIC-IV-ECG). Source title: "MIMIC-IV-ECG: Diagnostic Electrocardiogram Matched Subset" (Gow et al.). It is a module of MIMIC-IV | "Electrocardiography module" as a coined gloss, or treating it as a separate database |
+| MIMIC-III | Medical Information Mart for Intensive Care III (MIMIC-III) | |
+| CODE-15% | 15% subset of the Clinical Outcomes in Digital Electrocardiography (CODE) dataset (CODE-15%). Source title: "CODE-15%: a large scale annotated dataset of 12-lead ECGs" | A dataset named "CODE-15" |
+| CODE-II | CODE-II, the large-scale electrocardiography dataset. Source title: "CODE-II: a large-scale dataset for artificial intelligence in ECG analysis" | "Clinical Outcomes in Digital Electrocardiography II" |
+| CPSC 2018 | China Physiological Signal Challenge 2018 (CPSC 2018) | |
+| eICU-CRD | eICU Collaborative Research Database (eICU-CRD). Source: Pollard et al. | Expanding bare "eICU" into "(eICU-CRD)". Bare "eICU" is the telehealth program; the database short form is eICU-CRD |
+| NHANES | National Health and Nutrition Examination Survey (NHANES) | |
+| UK Biobank | no abbreviation; write the full name every time | |
+| CHUM | Centre hospitalier de l'Université de Montréal (CHUM) | The unaccented gloss "Universite de Montreal" |
+| MHI | Montreal Heart Institute (MHI) | |
 
 **Verification logic:**
 
 ```
-FOR each abbreviation token (all-caps, mixed-case acronym, or token with % or hyphen-plus-digit) in the manuscript:
-  FIND its first occurrence across the whole document, including title, abstract, figure captions, table footnotes and supplement
-  CHECK that the expansion appears at or before that first occurrence
+FOR each abbreviation in the four categories above
+    (all-caps tokens, and dataset or model short names such as PTB-XL, MIMIC-IV-ECG, CODE-15%):
+  SKIP numbers, ranges, version strings, and figure or table labels
+  FOR each major section (Abstract, Introduction, Methods, Results, Discussion):
+    FIND the first occurrence in that section, including its figure captions and table footnotes
+    CHECK that the expansion appears at or before that first occurrence
+    FOR all-caps tokens of length 2 to 5:
+      CHECK for "(TOKEN)" within 80 characters of that first occurrence
   IF the token is a dataset or model name:
-    CHECK the expansion against the source dataset's own publication, not an invented gloss
+    CHECK the expansion against the source table above, not an invented gloss
   IF the token appears in the Abstract and again in the body:
     REQUIRE expansion in both places; the abstract is not first use for the body
   IF the token appears only in a table or figure and nowhere in the text:
@@ -83,12 +90,12 @@ FOR each abbreviation token (all-caps, mixed-case acronym, or token with % or hy
 **Failure modes to name in the review:**
 
 - A dataset named in the Abstract but never expanded anywhere.
-- An author-invented expansion that differs from the dataset's official name. MIMIC-IV-ECG is the Electrocardiography *module* of MIMIC-IV, not a separate database. CODE-15% is a 15% subset of the CODE dataset, not a dataset called "CODE-15."
-- An abbreviation expanded once near the top and never again where it recurs in Methods or Results.
+- An author-invented expansion that differs from the dataset's own publication. MIMIC-IV-ECG is the Diagnostic Electrocardiogram Matched Subset, a module of MIMIC-IV, not a separate database. CODE-15% is a 15% subset of the CODE dataset, not a dataset called "CODE-15." PTB-XL is the Physikalisch-Technische Bundesanstalt electrocardiography dataset; "Bundesanstalt XL" is not the institution's name.
+- An abbreviation expanded in one major section and missing at first use in a later major section.
 - The same abbreviation expanded differently in two places.
 - A bare dataset short name with no citation, so the reader cannot reach the expansion or the source.
 
-**Output:** a table of every abbreviation found, its first-occurrence location, whether the expansion is present, and PASS or FAIL. Any FAIL is a blocking comment, not a suggestion.
+**Output:** a table of every abbreviation found, its first-occurrence location in each major section, whether the expansion is present, and PASS or FAIL. Any FAIL is a blocking comment, not a suggestion. Attach the table, then continue the review.
 
 ---
 
@@ -544,7 +551,7 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 - Define every abbreviation at first mention within each major section: Abstract, Introduction, Methods, Results, and Discussion.
 - Treat the abbreviation list as a backstop, not a substitute for in-section definition.
-- **Dataset, registry, and model names count as abbreviations and must be expanded too.** PTB-XL, MIMIC-IV-ECG, CODE-15%, CPSC 2018, and similar benchmark dataset names are the most common unexpanded tokens in medical-AI manuscripts, because authors treat them as proper nouns. They are not exempt. Verify each expansion against the dataset's own publication.
+- **Dataset, registry, and model names count as abbreviations and must be expanded too.** PTB-XL, MIMIC-IV-ECG, CODE-15%, CPSC 2018, and similar benchmark dataset names are the most common unexpanded tokens in medical-AI manuscripts, because authors treat them as proper nouns. They are not exempt. Use the G1 source table, and verify each expansion against the dataset's own publication.
 - Regex-audit all all-caps tokens of length 2 to 5 and require the expansion within 80 characters of first occurrence in each section.
 - Run the G1 abbreviation gate and attach its PASS/FAIL table to the review.
 
@@ -596,10 +603,7 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 ```
 RUN full_review():
-  RUN general_comments()            # G1 abbreviation gate first, blocking
-  IF any abbreviation FAIL:
-    REPORT the abbreviation table
-    RETURN "expand every abbreviation before content review"
+  abbrev = RUN general_comments()   # G1 abbreviation gate; report the table; do not return yet
   RUN length_budget_gate()          # Step 0.5, blocking
   IF any unit > budget:
     REPORT measured vs budget per unit
@@ -609,6 +613,8 @@ RUN full_review():
     PRINT "=== Reviewing {section} ==="
     RUN section_checklist(section)
     PRINT summary(passed, failed, total)
+  IF abbrev has any FAIL:
+    RETURN "expand every abbreviation before calling the review complete"
   PRINT "=== MANUSCRIPT REVIEW COMPLETE ==="
   RETURN overall_compliance_score
 ```
@@ -629,7 +635,7 @@ RUN full_review():
 | Abbreviations with "=" | Use colon: `LVEF: Left Ventricular Ejection Fraction` |
 | Abbreviations separated by commas | Use semicolons between entries |
 | Unexpanded abbreviations | Expand at first use: Full Name (ABBREVIATION) |
-| Unabbreviated dataset names (PTB-XL, MIMIC-IV-ECG, CODE-15%) | Expand at first use and cite the dataset: Physikalisch-Technische Bundesanstalt XL (PTB-XL) |
+| Unexpanded dataset short names (PTB-XL, MIMIC-IV-ECG, CODE-15%) | Expand at first use and cite the dataset: Physikalisch-Technische Bundesanstalt electrocardiography dataset (PTB-XL) |
 | `vs.` | `versus` or `compared with` |
 | `i.e.` or `e.g.` | `that is`, `for example`, or direct wording |
 | `mean +/- SD` | `mean (SD)` |
