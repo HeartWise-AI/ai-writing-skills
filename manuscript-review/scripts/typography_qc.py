@@ -146,6 +146,8 @@ SECTION_RE = re.compile(
     r"(?im)^\s*(?:#{1,6}\s*)?(abstract|introduction|methods|results|discussion|conclusion)\b.*$"
 )
 ABBREV_RE = re.compile(r"\b[A-Z][A-Z0-9]{1,4}\b")
+# Lowercase and mixed-case forms the all-caps pattern never sees.
+UNIT_ABBREV_RE = re.compile(r"\b(?:bpm|mmHg|msec|SpO2)\b")
 
 
 def read_text(path: Path | None) -> str:
@@ -237,29 +239,30 @@ def abbreviation_findings(text: str) -> list[Finding]:
     for section_name, start, end in split_sections(text):
         body = text[start:end]
         seen: set[str] = set()
-        for match in ABBREV_RE.finditer(body):
-            token = match.group(0)
-            if token in seen:
-                continue
-            seen.add(token)
-            absolute_start = start + match.start()
-            absolute_end = start + match.end()
-            window_start = max(0, absolute_start - 80)
-            window_end = min(len(text), absolute_end + 20)
-            window = text[window_start:window_end]
-            if f"({token})" in window:
-                continue
-            line, column = line_col(starts, absolute_start)
-            findings.append(
-                Finding(
-                    "ABBREVIATION_FIRST_USE",
-                    line,
-                    column,
-                    excerpt(text, absolute_start, absolute_end),
-                    f"{token} may be undefined at first use in {section_name}.",
-                    "Define abbreviations at first mention within each major section.",
+        for pattern in (ABBREV_RE, UNIT_ABBREV_RE):
+            for match in pattern.finditer(body):
+                token = match.group(0)
+                if token in seen:
+                    continue
+                seen.add(token)
+                absolute_start = start + match.start()
+                absolute_end = start + match.end()
+                window_start = max(0, absolute_start - 80)
+                window_end = min(len(text), absolute_end + 20)
+                window = text[window_start:window_end]
+                if f"({token})" in window:
+                    continue
+                line, column = line_col(starts, absolute_start)
+                findings.append(
+                    Finding(
+                        "ABBREVIATION_FIRST_USE",
+                        line,
+                        column,
+                        excerpt(text, absolute_start, absolute_end),
+                        f"{token} may be undefined at first use in {section_name}.",
+                        "Define abbreviations at first mention within each major section.",
+                    )
                 )
-            )
     return findings
 
 
