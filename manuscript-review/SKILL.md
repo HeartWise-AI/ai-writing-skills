@@ -1,6 +1,6 @@
 ---
 name: manuscript-review
-description: Comprehensive checklist for reviewing academic medical AI manuscripts, covering a length and information-density gate, objective identification, Background, Methods, Results, Tables, Discussion, and Abstract sections with success criteria for each. Enforces hard word budgets, compression without information loss, and two-decimal metric reporting. Use when reviewing, compressing, or evaluating a manuscript draft.
+description: Comprehensive checklist for reviewing academic medical AI manuscripts, beginning with blocking General Comments (every abbreviation, including dataset names such as PTB-XL, MIMIC-IV-ECG and CODE-15%, must be expanded at first use), then a length and information-density gate, objective identification, Background, Methods, Results, Tables, Discussion, and Abstract sections with success criteria for each. Enforces hard word budgets, compression without information loss, and two-decimal metric reporting. Use when reviewing, compressing, or evaluating a manuscript draft.
 ---
 
 # Claude Code Skill: AI Manuscript Section Reviewer
@@ -30,6 +30,65 @@ Reusable assets in this skill:
 - `templates/failure_mode_panel_template.md`: supplementary failure-mode panel template
 - `templates/failure_mode_panel_template.ipynb`: executable failure-mode panel notebook skeleton
 - `templates/consort_flow_table1_template.md`: CONSORT-style flow and Table 1 denominator template
+
+---
+
+## General Comments (check these on every manuscript, in this order)
+
+Standing rules that apply to every manuscript review regardless of section. Add to this list as new rules are learned; each entry is a blocking check, not a preference.
+
+### G1. Every abbreviation must be expanded at first use. This is a blocking gate.
+
+No manuscript passes review with an unexpanded abbreviation. Every abbreviation, acronym, initialism, and dataset or model short name must be written out in full at its first appearance, with the short form in parentheses, before the section-by-section review proceeds.
+
+**It applies to four categories, all of which count:**
+
+1. Clinical and statistical terms: AUROC, LVEF, PCI, CI, SD, PPV, NPV.
+2. Datasets and registries, including public benchmark datasets whose names are themselves acronyms. These are the most commonly left unexpanded, because authors treat the dataset name as a proper noun.
+3. Model, architecture, and method names: CNN, Transformer, LSTM, GAN, LLM.
+4. Institution, consortium, and standard names: MHI, IRB, TRIPOD, PRISMA, SCP-ECG.
+
+**Known dataset expansions to check on sight.** If any of these appear, the manuscript must expand it at first mention, and the reviewer must verify the expansion matches the dataset's own publication rather than a plausible guess:
+
+| Short form | Required expansion at first mention |
+|---|---|
+| PTB-XL | Physikalisch-Technische Bundesanstalt XL (PTB-XL), the German clinical 12-lead ECG dataset |
+| MIMIC-IV | Medical Information Mart for Intensive Care IV (MIMIC-IV) |
+| MIMIC-IV-ECG | Medical Information Mart for Intensive Care IV Electrocardiography module (MIMIC-IV-ECG) |
+| MIMIC-III | Medical Information Mart for Intensive Care III (MIMIC-III) |
+| CODE-15% | Clinical Outcomes in Digital Electrocardiography 15% subset (CODE-15%) |
+| CODE-II | Clinical Outcomes in Digital Electrocardiography II (CODE-II) |
+| CPSC 2018 | China Physiological Signal Challenge 2018 (CPSC 2018) |
+| eICU | eICU Collaborative Research Database (eICU-CRD) |
+| NHANES | National Health and Nutrition Examination Survey (NHANES) |
+| UK Biobank | no abbreviation; write the full name every time |
+| CHUM | Centre hospitalier de l'Universite de Montreal (CHUM) |
+| MHI | Montreal Heart Institute (MHI) |
+
+**Verification logic:**
+
+```
+FOR each abbreviation token (all-caps, mixed-case acronym, or token with % or hyphen-plus-digit) in the manuscript:
+  FIND its first occurrence across the whole document, including title, abstract, figure captions, table footnotes and supplement
+  CHECK that the expansion appears at or before that first occurrence
+  IF the token is a dataset or model name:
+    CHECK the expansion against the source dataset's own publication, not an invented gloss
+  IF the token appears in the Abstract and again in the body:
+    REQUIRE expansion in both places; the abstract is not first use for the body
+  IF the token appears only in a table or figure and nowhere in the text:
+    REQUIRE it in the table footnote or figure legend
+  IF the token is expanded only in the abbreviation list at the back: FAIL
+```
+
+**Failure modes to name in the review:**
+
+- A dataset named in the Abstract but never expanded anywhere.
+- An author-invented expansion that differs from the dataset's official name. MIMIC-IV-ECG is the Electrocardiography *module* of MIMIC-IV, not a separate database. CODE-15% is a 15% subset of the CODE dataset, not a dataset called "CODE-15."
+- An abbreviation expanded once near the top and never again where it recurs in Methods or Results.
+- The same abbreviation expanded differently in two places.
+- A bare dataset short name with no citation, so the reader cannot reach the expansion or the source.
+
+**Output:** a table of every abbreviation found, its first-occurrence location, whether the expansion is present, and PASS or FAIL. Any FAIL is a blocking comment, not a suggestion.
 
 ---
 
@@ -485,7 +544,9 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 - Define every abbreviation at first mention within each major section: Abstract, Introduction, Methods, Results, and Discussion.
 - Treat the abbreviation list as a backstop, not a substitute for in-section definition.
+- **Dataset, registry, and model names count as abbreviations and must be expanded too.** PTB-XL, MIMIC-IV-ECG, CODE-15%, CPSC 2018, and similar benchmark dataset names are the most common unexpanded tokens in medical-AI manuscripts, because authors treat them as proper nouns. They are not exempt. Verify each expansion against the dataset's own publication.
 - Regex-audit all all-caps tokens of length 2 to 5 and require the expansion within 80 characters of first occurrence in each section.
+- Run the G1 abbreviation gate and attach its PASS/FAIL table to the review.
 
 ### 13. Figure clarity and CONSORT cohort flow
 
@@ -535,6 +596,10 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 ```
 RUN full_review():
+  RUN general_comments()            # G1 abbreviation gate first, blocking
+  IF any abbreviation FAIL:
+    REPORT the abbreviation table
+    RETURN "expand every abbreviation before content review"
   RUN length_budget_gate()          # Step 0.5, blocking
   IF any unit > budget:
     REPORT measured vs budget per unit
@@ -564,6 +629,7 @@ RUN full_review():
 | Abbreviations with "=" | Use colon: `LVEF: Left Ventricular Ejection Fraction` |
 | Abbreviations separated by commas | Use semicolons between entries |
 | Unexpanded abbreviations | Expand at first use: Full Name (ABBREVIATION) |
+| Unabbreviated dataset names (PTB-XL, MIMIC-IV-ECG, CODE-15%) | Expand at first use and cite the dataset: Physikalisch-Technische Bundesanstalt XL (PTB-XL) |
 | `vs.` | `versus` or `compared with` |
 | `i.e.` or `e.g.` | `that is`, `for example`, or direct wording |
 | `mean +/- SD` | `mean (SD)` |
