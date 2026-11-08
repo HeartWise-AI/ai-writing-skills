@@ -1,6 +1,6 @@
 ---
 name: manuscript-review
-description: Comprehensive checklist for reviewing academic medical AI manuscripts, beginning with blocking General Comments (every abbreviation, including dataset names such as PTB-XL, MIMIC-IV-ECG and CODE-15%, must be expanded at first use), then a length and information-density gate, objective identification, Background, Methods, Results, Tables, Discussion, and Abstract sections with success criteria for each. Enforces hard word budgets, compression without information loss, and two-decimal metric reporting. Use when reviewing, compressing, or evaluating a manuscript draft.
+description: Comprehensive checklist for reviewing academic medical AI manuscripts, beginning with blocking General Comments (every abbreviation, including dataset names such as PTB-XL, MIMIC-IV-ECG and CODE-15%, must be expanded at first use; author advocacy and emotional framing are detected and rewritten in place into objective, evidence-matched language), then a length and information-density gate, objective identification, Background, Methods, Results, Tables, Discussion, and Abstract sections with success criteria for each. Enforces hard word budgets, compression without information loss, and two-decimal metric reporting, and always finishes with a no-ai-slop editing pass. Use when reviewing, compressing, or evaluating a manuscript draft.
 ---
 
 # Claude Code Skill: AI Manuscript Section Reviewer
@@ -21,7 +21,7 @@ or
 Run full manuscript checklist
 ```
 
-Both commands run General Comments, including the abbreviation gate, before the requested checklist. A section review uses `section_review()`, not the section checklist alone.
+Both commands run General Comments, including the abbreviation gate and the objectivity gate, before the requested checklist, and both finish with the G3 `no-ai-slop` pass. A section review uses `section_review()`, not the section checklist alone.
 
 Reusable assets in this skill:
 
@@ -104,6 +104,85 @@ FOR each abbreviation in the categories above
 - A bare dataset short name with no citation, so the reader cannot reach the expansion or the source.
 
 **Output:** a table of every abbreviation found, its first-occurrence location in each major section, whether the expansion is present, and PASS or FAIL. Any FAIL is a blocking comment, not a suggestion. Attach the table, then continue the review.
+
+### G2. Report the data, not the authors' attachment to it. This is a blocking gate, and the reviewer edits the text.
+
+Authors who built the model, assembled the cohort, or ran the trial tend to write about it as advocates. The result is prose that sells: evaluative adjectives, verbs stronger than the design supports, favorable results described at length and unfavorable ones explained away, and limitations each followed by a rebuttal. Reviewers read this as bias and discount the numbers. This check detects that framing and rewrites it into neutral, evidence-matched language. It does not stop at flagging.
+
+Run it after the Step 0.5 compression, so rewrites are not spent on text that will be deleted, and before the section-by-section review.
+
+**Signals of emotional attachment or advocacy:**
+
+1. **Evaluative and affective wording.** remarkable, striking, impressive, excellent, outstanding, exceptional, unprecedented, groundbreaking, transformative, powerful, compelling, exciting, encouraging, promising, near-perfect, dramatically, substantially (without a number), clearly, strongly, notably, importantly, interestingly.
+2. **Certainty beyond the design.** proves, demonstrates, establishes, confirms, definitively, and causal verbs (improves, reduces, prevents) applied to retrospective or observational data.
+3. **Asymmetric reporting.** Favorable results receive adjectives, their own sentence, or a place in the Abstract; unfavorable results are hedged (only slightly lower, still achieved, remained competitive), moved to the Supplement, or left out of the Abstract. Non-significant differences are described as trends or advantages.
+4. **Defensive framing of negative findings.** A null or negative result is immediately followed by an explanation that neutralizes it, rather than stated plainly with one mechanistic candidate.
+5. **Minimized limitations.** a minor limitation, does not detract from, unlikely to affect, or a limitation followed in the same paragraph by a reassurance sentence.
+6. **Promotional and future-tense claims.** will revolutionize, paves the way, game-changer, holds great promise, has the potential to transform, and first-ever or first-in-class without a stated literature search.
+7. **Stance and ownership language.** we believe, we are confident, we are excited, our novel, and repeated "our model" set against named competitors.
+8. **Pejorative framing of comparators.** Prior methods or competing models described as naive, simplistic, inadequate, or failing, rather than by their reported metrics.
+9. **Over-generalization.** Single-centre, single-vendor, or retrospective results extended to clinical practice, all patients, or real-world deployment.
+10. **Rhetorical devices in Results or Discussion.** Rhetorical questions, exclamation points, a single illustrative case presented as representative, and appeals to disease burden or urgency used to carry an inferential claim. Clinical burden in the Background is legitimate motivation and is not flagged.
+
+**Evidence-matched verbs.** The verb follows the design, not the authors' confidence:
+
+| Study design | Permitted | Not permitted |
+|---|---|---|
+| Retrospective internal validation | achieved, was associated with, discriminated, identified | demonstrates clinical utility, improves care, outperforms clinicians |
+| Retrospective external validation | maintained performance in the [named] cohort | generalizes, is robust across settings |
+| Reader study or silent-mode deployment | changed reader sensitivity by, agreed with | improves outcomes |
+| Randomized trial | improved, reduced, increased, for the randomized endpoint only | causal language for secondary or post hoc endpoints |
+| Non-significant comparison | did not differ; the difference was X (95% CI) | trended toward, numerically superior, comparable without a prespecified equivalence margin |
+
+**Rewrite rules:**
+
+- **Edit, do not only comment.** Rewrite every flagged sentence in place. For a .docx, use tracked changes so the authors can accept or reject each edit; for plain text or Markdown, return the revised text.
+- **Change wording only.** Every number, confidence interval, p value, cohort size (number of ECGs, images, or studies and number of patients for each dataset), citation, and figure or table reference survives unchanged. Do not invent a missing CI; flag it for the authors instead.
+- **Let the numbers carry the claim.** "The model achieved an excellent AUROC of 0.94" becomes "The model achieved an AUROC of 0.94 (95% CI 0.93 to 0.95)".
+- **Symmetric treatment.** Favorable and unfavorable results get the same sentence structure, precision, and placement. If the Abstract reports the best subgroup, it reports the worst.
+- **Negative findings in one plain sentence**, followed by at most one mechanistic candidate framed as a hypothesis.
+- **Limitations stand without rebuttal.** Delete the reassurance; keep the limitation and, where known, the expected direction of bias.
+- **Replace stance with evidence.** "We believe this will improve triage" becomes a statement of what was measured, with the untested step named as requiring prospective evaluation.
+- **Do not overcorrect.** A claim the data support at the stated design level keeps its full strength. Do not hedge well-supported results, and do not strip clinical motivation from the Background.
+- **Touch only the flagged sentence.** Preserve the authors' voice, terminology, and structure everywhere else.
+
+**Before and after:**
+
+| Original | Revision | Signal |
+|---|---|---|
+| Remarkably, the model achieved near-perfect discrimination (AUROC 0.98). | The model achieved an AUROC of 0.98 (95% CI 0.97 to 0.98). | 1 |
+| Although performance was slightly lower in women (AUROC 0.86 versus 0.91), this is unlikely to be clinically meaningful and the model remained highly accurate. | AUROC was lower in women than in men (0.86 compared with 0.91). | 3, 4 |
+| This study proves that AI-enabled ECG can transform heart failure screening. | In this retrospective cohort, the model identified reduced ejection fraction with an AUROC of 0.92; its effect on screening outcomes requires prospective evaluation. | 2, 6, 9 |
+| The single-centre design is a minor limitation that does not detract from our findings, given the size of the cohort. | Data came from a single centre, which may limit transportability to other populations and acquisition systems. | 5 |
+
+**Verification logic:**
+
+```
+FOR each sentence in Abstract, Introduction, Results, Discussion, figure legends and cover letter:
+  SCAN for signals 1 to 10
+  CLASSIFY study design per claim and CHECK verb against the evidence-matched table
+  PAIR each favorable result with its unfavorable counterpart (subgroup, cohort, comparator)
+    CHECK equal placement, precision and wording; FAIL if asymmetric
+  FOR each flagged sentence:
+    REWRITE in place per rewrite rules
+    VERIFY numbers, CIs, cohort sizes and citations are identical to the original
+  RE-SCAN revised text; residual flagged sentences must be zero
+```
+
+**Output:** a change log table (location, original, revision, signal number), followed by the revised manuscript or tracked-changes file. Any flagged sentence left unrevised is a FAIL unless the review states why the evidence supports it as written.
+
+### G3. Always finish with a no-ai-slop pass. This runs on every review, last.
+
+After every other gate and checklist, including the G2 rewrites and any compression edits, run the `no-ai-slop` skill in its Edit job on the revised manuscript text: Abstract, Introduction, Methods, Results, Discussion, figure legends, and table footnotes. Load the skill and follow its editing principles, banned words, and patterns. If the skill is not available in the session, say so in the review rather than skipping the pass silently.
+
+Manuscript invariants override `no-ai-slop` wherever the two conflict:
+
+- **G2 wins on tone.** `no-ai-slop` favors opinion, edge, and character. A manuscript does not. Never reintroduce evaluative adjectives, stance language, or claims stronger than the design allows.
+- **Scientific content is frozen.** Numbers, confidence intervals, p values, cohort sizes (number of ECGs, images, or studies and number of patients for each dataset), units, citations, figure and table references, abbreviation expansions from G1, and defined technical terms do not change.
+- **Budgets hold.** The pass may shorten text but never pushes a unit back over its Step 0.5 budget.
+- **Reporting conventions hold.** Passive voice in Methods is acceptable where the agent is the study team. Keep "compared with", `mean (SD)`, "to" in ranges, two-decimal metrics, and journal section structure.
+
+**Output:** the `no-ai-slop` "What changed" section appended after the G2 change log. For a .docx, these edits go in as tracked changes alongside the G2 edits.
 
 ---
 
@@ -243,7 +322,9 @@ A request to review one section is still a manuscript review. Run `general_comme
 ```
 RUN section_review(section):
   abbrev = RUN general_comments()   # G1 on the whole manuscript; report the table
+  RUN objectivity_gate(section)     # G2, rewrites flagged sentences in place
   RUN section_checklist(section)
+  RUN no_ai_slop_pass(section)      # G3, always last; manuscript invariants override
   IF abbrev has any FAIL:
     RETURN "expand every abbreviation before calling the review complete"
 ```
@@ -629,11 +710,13 @@ RUN full_review():
   IF any unit > budget:
     REPORT measured vs budget per unit
     RETURN "compress before content review"
+  RUN objectivity_gate()            # G2, blocking, rewrites flagged sentences in place
   sections = [Objectives, Background, Methods, Results, Tables, Discussion, Abstract, ReviewerPatterns]
   FOR section in sections:
     PRINT "=== Reviewing {section} ==="
     RUN section_checklist(section)
     PRINT summary(passed, failed, total)
+  RUN no_ai_slop_pass()             # G3, always last; manuscript invariants override
   IF abbrev has any FAIL:
     RETURN "expand every abbreviation before calling the review complete"
   PRINT "=== MANUSCRIPT REVIEW COMPLETE ==="
@@ -670,4 +753,10 @@ RUN full_review():
 | Two subsections describing one cohort | One merged paragraph |
 | Deleting detail with no destination | Route to a named supplementary table and cite it in place |
 | Pearson r or ICC alone for agreement | Bland-Altman with limits of agreement |
+| Evaluative adjectives (remarkable, excellent, impressive, near-perfect) | The metric and its CI |
+| "Proves", "demonstrates", or causal verbs from retrospective data | "achieved", "was associated with" |
+| "Trended toward significance", "numerically superior" | The estimate, its CI, and a plain statement of no significant difference |
+| "Comparable" without an equivalence margin | The paired difference and its CI |
+| A limitation followed by a rebuttal | The limitation and its expected direction of bias |
+| "Paves the way", "revolutionize", "we believe" | What was measured, and what still requires prospective evaluation |
 | 510(k) framed as clinical validation | State as substantial equivalence to a predicate device only |
