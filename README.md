@@ -40,7 +40,9 @@ Section-by-section checklist for reviewing medical AI manuscripts.
 **Includes:**
 - Background, Methods, Results, Tables, Discussion, and Abstract checklists
 - Success criteria for each section, including threshold reporting checks for binary classification
-- 16-item reviewer-pattern pre-submission checklist for medical-AI papers
+- Clinical-meaning gate (G4): user, workflow step, guideline comparator, counts per 1,000, three-arm figure
+- Companion file for systematic reviews and meta-analyses of prediction models
+- 17-item reviewer-pattern pre-submission checklist for medical-AI papers
 - Label-noise, failure-mode, CONSORT flow, and Table 1 denominator templates
 - Typography and abbreviation QC script
 - Numerical formatting rules
