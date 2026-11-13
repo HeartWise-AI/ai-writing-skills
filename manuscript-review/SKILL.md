@@ -1,6 +1,6 @@
 ---
 name: manuscript-review
-description: Comprehensive checklist for reviewing academic medical AI manuscripts, beginning with blocking General Comments (every abbreviation, including dataset names such as PTB-XL, MIMIC-IV-ECG and CODE-15%, must be expanded at first use; author advocacy and emotional framing are detected and rewritten in place into objective, evidence-matched language), then a length and information-density gate, objective identification, Background, Methods, Results, Tables, Discussion, and Abstract sections with success criteria for each. Enforces hard word budgets, compression without information loss, and two-decimal metric reporting, and always finishes with a no-ai-slop editing pass. Use when reviewing, compressing, or evaluating a manuscript draft.
+description: Comprehensive checklist for reviewing academic medical AI manuscripts, beginning with blocking General Comments (every abbreviation, including dataset names such as PTB-XL, MIMIC-IV-ECG and CODE-15%, must be expanded at first use; author advocacy and emotional framing are detected and rewritten in place into objective, evidence-matched language), then a length and information-density gate, objective identification, Background, Methods, Results, Tables, Discussion, and Abstract sections with success criteria for each. A clinical-meaning gate requires the user, workflow step, guideline comparator, and counts per 1,000 behind every headline metric, and a companion file covers systematic reviews and meta-analyses. Enforces hard word budgets, compression without information loss, and two-decimal metric reporting, and always finishes with a no-ai-slop editing pass. Use when reviewing, compressing, or evaluating a manuscript draft.
 ---
 
 # Claude Code Skill: AI Manuscript Section Reviewer
@@ -21,13 +21,16 @@ or
 Run full manuscript checklist
 ```
 
-Both commands run General Comments, including the abbreviation gate and the objectivity gate, before the requested checklist, and both finish with the G3 `no-ai-slop` pass. A section review uses `section_review()`, not the section checklist alone.
+Both commands run General Comments, including the abbreviation gate, the objectivity gate, and the G4 clinical-meaning gate, before the requested checklist, and both finish with the G3 `no-ai-slop` pass. A section review uses `section_review()`, not the section checklist alone.
+
+If the manuscript is a systematic review or meta-analysis, read `systematic_review.md` before Step 0.
 
 Reusable assets in this skill:
 
 - `scripts/length_budget_qc.py`: section and subsection word-budget audit, negative-space sentence detector, and cross-section redundancy check. Run this first
 - `scripts/test_qc.py`: contract tests for both QC scripts. Run after changing either one
 - `scripts/typography_qc.py`: regex-based typography, metric-precision, and abbreviation audit for pre-submission drafts
+- `systematic_review.md`: what changes when the manuscript is a systematic review or meta-analysis of prediction models
 - `templates/label_noise_sensitivity_template.md`: reviewer-ready label-noise sensitivity analysis template
 - `templates/failure_mode_panel_template.md`: supplementary failure-mode panel template
 - `templates/failure_mode_panel_template.ipynb`: executable failure-mode panel notebook skeleton
@@ -132,7 +135,7 @@ Run it after the Step 0.5 compression, so rewrites are not spent on text that wi
 | Retrospective external validation | maintained performance in the [named] cohort | generalizes, is robust across settings |
 | Reader study or silent-mode deployment | changed reader sensitivity by, agreed with | improves outcomes |
 | Randomized trial | improved, reduced, increased, for the randomized endpoint only | causal language for secondary or post hoc endpoints |
-| Non-significant comparison | did not differ; the difference was X (95% CI) | trended toward, numerically superior, comparable without a prespecified equivalence margin |
+| Non-significant comparison, or overlapping 95% CIs without a paired test | did not differ; the difference was X (95% CI); numerically higher, with overlapping 95% CIs | trended toward, numerically superior, "higher" or "performed better" stated alone, comparable without a prespecified equivalence margin |
 
 **Rewrite rules:**
 
@@ -170,6 +173,42 @@ FOR each sentence in Abstract, Introduction, Results, Discussion, figure legends
 ```
 
 **Output:** a change log table (location, original, revision, signal number), followed by the revised manuscript or tracked-changes file. Any flagged sentence left unrevised is a FAIL unless the review states why the evidence supports it as written.
+
+### G4. Translate performance into clinical meaning. This is a blocking gate, and the reviewer writes the missing text.
+
+A manuscript can report every metric correctly and never say what the result changes for a patient. Editors read "moderate discrimination, further validation is needed" as a paper without a finding. This gate asks **so what** of every headline result and writes the answer into the manuscript. Run it after G2 and before the section checklists; G3 still runs last.
+
+**The six so-what questions.** Each is answered in the Discussion with numbers from the manuscript or its cited sources. A missing answer is a FAIL.
+
+1. **Who uses it, where, and at which step?** Name the user (family physician, optometrist, screening nurse), the setting, the moment in the existing pathway, and the action the output triggers (order a lipid panel, open a statin discussion, refer). "Could support risk stratification" names none of these.
+2. **Against what?** The comparator is the tool that the guideline for that jurisdiction recommends today, compared head to head on the same endpoint and horizon. Name the guideline and the jurisdiction for each comparator and cite it.
+3. **How many patients?** Convert discrimination into counts per 1,000 or per 100,000 people tested at a stated threshold: flagged, events caught, events missed, false alarms, and the difference from the comparator. This needs sensitivity and specificity at a threshold plus the event rate. When the sources lack them, say so and give an example labelled as an illustration: "if 10,000 of 100,000 people go on to have an event, raising sensitivity from 50% to 70% identifies 7,000 of them instead of 5,000".
+4. **What does the increment mean?** Report the combined model against the standard model alone, never against the weaker arm. A net reclassification improvement (NRI) sums two proportions with different denominators, so it is not "X% more patients identified": report the event and non-event components separately, with the risk categories used. An increment whose confidence interval includes zero is reported as uncertain.
+5. **What goes in?** For every combined model, list the exact added inputs, whether any needs a blood test or a clinic measurement, and whether the comparator was the full published score or a subset of its variables. A "lab-free" or "opportunistic" claim holds only when every input exists at the point of use.
+6. **What is still unproven?** Name the next study by design (silent deployment, impact trial against usual care) and the outcome it must move (treatment initiation, risk-factor control, events).
+
+**The three-arm figure.** When a test is proposed as an addition to standard assessment, require one figure with three arms side by side: standard alone, new test alone, combined. It shows discrimination per arm, the increment of combined over standard, reclassification, and counts per 1,000 at the clinical threshold. A reader gets the clinical message from this figure alone.
+
+**Regulatory and commercial claims.** State the regulator, the year, the device class, and the intended use as worded in the authorization (population, age range, setting, output), with a citation. "Received regulatory authorization" without these is a FAIL. Reviewer pattern 17 covers what clearance does and does not show.
+
+**Rewrite rules.** As in G2, write the missing or corrected paragraph in place, as tracked changes for a .docx. When a whole paragraph is off, supply the paste-ready replacement, not a description of it. Every number comes from the manuscript or from a source opened and cited during the review; a number not found is an `[AUTHORS: ...]` query, never an estimate.
+
+**Verification Logic:**
+
+```javascript
+FOR each headline result (Abstract, first Discussion paragraph, Conclusion):
+  ANSWER the six so-what questions from the manuscript text
+  FOR each unanswered question:
+    WRITE the missing sentences from manuscript or cited-source numbers
+    IF a number is unavailable: INSERT an [AUTHORS: ...] query and a labelled illustration
+  FOR each NRI or "added value" claim:
+    CHECK event and non-event components, risk categories, and comparator arm
+  FOR each regulatory or commercial claim:
+    CHECK regulator, year, class, verbatim intended use, citation
+IF the test is an add-on to standard assessment: CHECK the three-arm figure exists
+```
+
+**Output:** a table of the six questions (answered where, PASS or FAIL), then the inserted or rewritten text. Any unanswered question without an author query is a FAIL.
 
 ### G3. Always finish with a no-ai-slop pass. This runs on every review, last.
 
@@ -355,6 +394,9 @@ FOR each paragraph in Background:
 - **Gaps Are Specific**: Each gap is actionable, not vague ("more work needed" = FAIL)
 - **Gaps Map to Contributions**: Every gap directly motivates a contribution
 - **Paper Roadmap Included**: Reader knows what to expect in subsequent sections
+- **Comparators Mapped to Guidelines**: Each established tool is tied to the guideline that recommends it and to its jurisdiction, with the guideline cited (for cardiovascular risk: Framingham Risk Score with the Canadian Cardiovascular Society, PREVENT with the American Heart Association, SCORE2 with the European Society of Cardiology). FAIL if scores are listed as interchangeable
+- **Terms Defined Once, Matched to Source**: Each outcome term is introduced with "defined as" and uses the label of the instrument it comes from. Atherosclerotic cardiovascular disease is not written as cardiovascular disease
+- **Comparator Table When Three or More**: Three or more comparator instruments get one table: reference, inputs, outcome definition, time horizon, endorsing guideline
 - **No Overclaiming**: Novelty stated relative to prior work without exaggeration
 - **Within Budget**: 500 words and 4 paragraphs maximum (Step 0.5). A paragraph enumerating prior cohorts, datasets, or model variants collapses to one sentence with the detail in a table or the Supplement
 - **Not Repeated Downstream**: Models and datasets described here are not described again in Methods or Discussion
@@ -436,6 +478,9 @@ FOR each paragraph in Results:
 - **Tables/Figures in Order**: Referenced sequentially as they appear
 - **No Em Dashes**: Use commas, parentheses, or separate sentences instead
 - **Statistics Complete**: Point estimates with 95% CI or p-values included
+- **Every Estimate Is Self-Contained**: Each performance value states its outcome, time horizon, population, and model inputs in the same sentence, in the Abstract too. Two estimates in one paragraph say what separates them. FAIL if a reader must ask "at what time?" or "how is this different from the next number?"
+- **Synonymous Metrics Declared Once**: When two names cover one quantity (C-statistic and AUROC for a binary outcome), say so at first use and keep one term
+- **Overlapping Intervals Are Not Differences**: Two estimates whose 95% CIs overlap, with no paired test, are "numerically higher, with overlapping 95% CIs", never "higher" or "performed better"
 - **Within Budget**: Whole section 1 to 1.5 pages or 500 to 750 words excluding tables; each paragraph 5 lines or 65 words carrying one claim and its numbers (Step 0.5)
 - **Strata Summarized, Not Enumerated**: When a stratified analysis is uninformative, state the conclusion and one representative figure, then cite the supplementary table. FAIL if every level of every stratum is spelled out in prose
 - **Exclusion Counts Itemized**: Each exclusion branch reports its own n by reason (unreadable waveform, missing lead, signal shorter than required duration), not one lumped count. Proportions below 0.01% are reported as `<0.01%`
@@ -524,8 +569,9 @@ FOR each paragraph in Discussion:
 - **Differences from Prior Work Addressed**: Explicitly states what is novel or contradictory vs. existing literature
 - **Similarities to Prior Work Addressed**: Acknowledges concordant findings that reinforce validity
 - **Results Sections Correlated**: Synthesizes how different analyses (e.g., subgroups, sensitivity analyses) relate to each other
-- **Practitioner Implications Stated**: Clear guidance on how findings affect clinical practice or workflow
+- **Practitioner Implications Stated**: The six so-what questions of G4 are answered: user, setting, step in the pathway, comparator, counts per 1,000, inputs, and the unproven step
 - **Researcher Implications Stated**: Identifies future research directions or methodological contributions
+- **Strengths Before Limitations**: The strengths paragraph precedes the limitations paragraph
 - **Limitations Clearly Present**: Dedicated section acknowledging study weaknesses and threats to validity
 - **Final Paragraph = Conclusion**: Last paragraph summarizes implications
 - **No New Results Introduced**: All data presented in Results section only
@@ -659,6 +705,8 @@ Use this checklist after the section-level review. Keep it generic and apply it 
 
 ### 13. Figure clarity and CONSORT cohort flow
 
+- Require the G4 three-arm figure whenever the model is positioned as an addition to a standard assessment.
+- When several models or training-set sizes are compared, offer one figure of performance against development sample size or event count on a log x axis.
 - Require a CONSORT-style flow diagram when more than 20% of available data is excluded.
 - Every exclusion branch must include reason and count.
 - Mark any cohort or performance figure carried over from a prior publication with an asterisk, footnote it as a historical comparison, and render it in a lighter shade than the present study's results.
@@ -711,6 +759,7 @@ RUN full_review():
     REPORT measured vs budget per unit
     RETURN "compress before content review"
   RUN objectivity_gate()            # G2, blocking, rewrites flagged sentences in place
+  RUN clinical_meaning_gate()       # G4, blocking, writes the missing so-what text in place
   sections = [Objectives, Background, Methods, Results, Tables, Discussion, Abstract, ReviewerPatterns]
   FOR section in sections:
     PRINT "=== Reviewing {section} ==="
@@ -755,8 +804,14 @@ RUN full_review():
 | Pearson r or ICC alone for agreement | Bland-Altman with limits of agreement |
 | Evaluative adjectives (remarkable, excellent, impressive, near-perfect) | The metric and its CI |
 | "Proves", "demonstrates", or causal verbs from retrospective data | "achieved", "was associated with" |
-| "Trended toward significance", "numerically superior" | The estimate, its CI, and a plain statement of no significant difference |
+| "Trended toward significance", "numerically superior", "higher" when the 95% CIs overlap | The estimate, its CI, and a plain statement of no significant difference, or "numerically higher, with overlapping 95% CIs" |
 | "Comparable" without an equivalence margin | The paired difference and its CI |
 | A limitation followed by a rebuttal | The limitation and its expected direction of bias |
 | "Paves the way", "revolutionize", "we believe" | What was measured, and what still requires prospective evaluation |
 | 510(k) framed as clinical validation | State as substantial equivalence to a predicate device only |
+| "Received regulatory authorization" with nothing else | Regulator, year, class, and the intended use as worded, with a citation |
+| NRI read as "X% more patients identified" | Event and non-event NRI separately, plus counts per 1,000 at a stated threshold |
+| Combined model compared with the image-only arm | Combined against the standard clinical model alone |
+| "May support risk stratification" | The user, the setting, the step in the pathway, and the action triggered |
+| A performance value without outcome and horizon | "5-year MACE, AUROC 0.71" |
+| Limitations before strengths | Strengths, then limitations |
